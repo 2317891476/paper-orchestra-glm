@@ -12,44 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# NOTE: concrete per-section passages (the strong signal) are extracted separately into a
+# style BANK and injected as few-shot exemplars at generation time. This prompt therefore
+# focuses on VOICE / global conventions (the part exemplars under-specify), and is told the
+# measured structure + available bank sections so it does not repeat them verbosely.
+
 style_extraction_prompt = """Role: Senior researcher and copy-editor.
-Task: Analyze the provided target-conference "best papers" (their full text + rendered page images)
-and distill a concise, actionable WRITING STYLE GUIDE that another author should mimic to match
-this community's conventions. This guide will be injected into paper-writing agents.
+Task: Distill the WRITING-VOICE conventions of this target community from the provided
+best-paper text (+ rendered page images). This summary will be injected into paper-writing
+agents alongside a per-section exemplar bank — so focus on VOICE and GLOBAL conventions,
+NOT on section ordering (already measured) or verbatim phrasing (already in the bank).
 
-Study BOTH the text (for voice, structure, phrasing) AND the page images (for layout, figure/table
-presentation, two-column conventions, typography).
+Measured structure (from the exemplars, do not restate — just use it):
+{structure_json}
 
-Produce the guide as Markdown with EXACTLY these sections (omit a section only if you have no
-evidence for it; keep each section short and concrete, max ~6 lines):
+Exemplar bank sections available (real passages, injected separately): {bank_sections}
+
+Study the text AND the page images (layout, figure/table presentation, two-column conventions).
+Produce a concise Markdown guide with EXACTLY these sections (skip a section only with no evidence;
+each section ≤ ~5 lines, concrete not generic):
 
 ## Voice & Tone
-(e.g., formal/technical density, use of first-person plural "we", hedging level, sentence length)
+(formal density, first-person plural "we" usage, hedging, sentence-length tendencies)
 
-## Section Structure & Ordering
-(the canonical section sequence this community expects, e.g., Intro → Background → Design →
-Implementation → Evaluation → Related Work → Conclusion; note where Related Work sits)
+## Citation & Related-Work Habits
+(density, how baselines/prior work are introduced, grouping style)
 
-## Abstract & Introduction Pattern
-(how abstracts are framed: problem → insight → approach → result numbers; how intros open and
-what the contribution bullets look like)
+## Math & Notation Conventions
+(notation habits, definition usage, equation density)
 
-## Citation Style & Density
-(approximate citation density, natbib/\\cite style, how related work is grouped, how baselines
-are introduced)
+## Figure & Table Conventions
+(caption placement, single vs two-column figures, table style e.g. booktabs, results-table organization — reference the images)
 
-## Math, Notation & Definitions
-(notation habits, whether definitions/environments are used, equation density)
-
-## Figures & Tables
-(figure conventions: captions above/below, single vs two-column figures, table style like
-booktabs, how results tables are organized; reference what you see in the images)
+## Per-Section Voice Notes
+(one short line each for: abstract, introduction, related_work, method, evaluation, conclusion —
+e.g. how intros open, how contributions are stated, how eval sections frame baselines)
 
 ## Do / Don't
-(bullet list of community-specific conventions to follow and pitfalls to avoid)
+(bullets of community conventions to follow and pitfalls to avoid)
 
-## Representative Phrasings
-(2-3 short verbatim phrasings or sentence templates lifted from these papers that capture the voice)
-
-Wrap the entire guide in a ```markdown ... ``` block. Output ONLY the guide.
+Wrap the whole guide in a ```markdown ... ``` block. Output ONLY the guide.
 """

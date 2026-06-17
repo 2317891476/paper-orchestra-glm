@@ -76,7 +76,7 @@ class HybridLiteratureAgent:
         model_name: str = "gemini-3.1-pro-preview",
         max_workers: int = 5,
         local_references_dir: str = None,
-        style_guide: str = None,
+        style_profile: dict = None,
     ):
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -84,7 +84,7 @@ class HybridLiteratureAgent:
         self.model_name = model_name
         self.max_workers = max_workers
         self.local_references_dir = local_references_dir
-        self.style_guide = style_guide
+        self.style_profile = style_profile
         self.context_paths = {
             "idea.md": idea_path,
             "experimental_log.md": experimental_log_path,
@@ -553,13 +553,21 @@ class HybridLiteratureAgent:
             min_cite_paper_count=int(len(papers) * 0.9),
             cutoff_date=cutoff_date,
         )
-        if self.style_guide:
-            writer_system_prompt += (
-                "\n\nTARGET-CONFERENCE STYLE GUIDE (mimic this voice/structure):\n"
-                + self.style_guide
-            )
+        from methods.agents.style_agent import style_summary, exemplars_block
 
-        user_prompt = "Generate the LaTeX for Introduction and Related Work sections.\n\nContext:\n" + json.dumps(context_payload)
+        _summary = style_summary(self.style_profile)
+        if _summary:
+            writer_system_prompt += (
+                "\n\nTARGET-CONFERENCE STYLE GUIDE (mimic this voice):\n" + _summary
+            )
+        _exemplars = exemplars_block(
+            self.style_profile, ["introduction", "related_work"], max_per_section=1
+        )
+
+        user_prompt = "Generate the LaTeX for Introduction and Related Work sections.\n\n"
+        if _exemplars:
+            user_prompt += _exemplars + "\n\n"
+        user_prompt += "Context:\n" + json.dumps(context_payload)
         response_dict = call_llm_with_text_prompt(
             prompt=user_prompt,
             model_name=self.model_name,

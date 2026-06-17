@@ -107,13 +107,13 @@ def write_single_paper(
             )
 
             ###############################################################################################
-            # Step 1.5 (optional): StyleAgent — extract style guide from best papers
-            style_guide = None
+            # Step 1.5 (optional): StyleAgent — extract style profile (summary + exemplar bank)
+            style_profile = None
             if use_style_learning:
                 style_papers = resolve_style_papers(style_references_dir, latex_template_dir)
                 if style_papers:
                     style_guide_path = osp.join(base_dir, "style_guide.md")
-                    style_guide = StyleAgent(
+                    style_profile = StyleAgent(
                         model_name=writer_model_name
                     ).run(style_papers, style_guide_path)
                 else:
@@ -131,7 +131,7 @@ def write_single_paper(
                 model_name=writer_model_name,
                 max_workers=3,
                 local_references_dir=local_references_dir,
-                style_guide=style_guide,
+                style_profile=style_profile,
             )
             literature_agent.run(
                 outline_path=outline_file_path,
@@ -164,7 +164,7 @@ def write_single_paper(
                 figures_info_path=osp.join(figures_dir, "info.json"),
                 guidelines_path=guidelines_path,
                 model_name=writer_model_name,
-                style_guide=style_guide,
+                style_profile=style_profile,
             )
             raw_draft_tex_path = osp.join(latex_writeup_dir, "raw_draft_paper.tex")
             section_writing_agent.run(output_path=raw_draft_tex_path)

@@ -50,15 +50,18 @@ class SectionWritingAgent:
         figures_info_path: str,
         guidelines_path: str,
         model_name: str = "gemini-3.1-pro-preview",
-        style_guide: str = None,
+        style_profile: dict = None,
     ):
 
         self.model_name = model_name
         self.system_prompt = section_writing_agent_prompt
-        if style_guide:
+        self.style_profile = style_profile
+        from methods.agents.style_agent import style_summary
+
+        _summary = style_summary(style_profile)
+        if _summary:
             self.system_prompt += (
-                "\n\nTARGET-CONFERENCE STYLE GUIDE (mimic this voice/structure):\n"
-                + style_guide
+                "\n\nTARGET-CONFERENCE STYLE GUIDE (mimic this voice):\n" + _summary
             )
 
         self.outline_path = outline_path
@@ -169,8 +172,19 @@ class SectionWritingAgent:
         except Exception as e:
             return f"Error reading input files: {str(e)}"
 
+        from methods.agents.style_agent import exemplars_block
+
+        # Real per-section passages from the target community — few-shot style conditioning.
+        _exemplars = exemplars_block(
+            self.style_profile,
+            ["method", "evaluation", "conclusion", "introduction"],
+            max_per_section=1,
+        )
+
         user_prompt = f"""
 Here are the input materials for the paper.
+
+{_exemplars}
 
 --- INPUT: outline.json (Structure & Citation Candidates) ---
 {outline_content}
