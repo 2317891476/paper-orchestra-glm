@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    {"id":"raw","type":"text","x":-280,"y":0,"width":240,"height":120,"color":"4","text":"# raw_material/\n- idea_sparse.md\n- experimental_log.md\n- figures/"},
+    {"id":"outline","type":"file","x":40,"y":0,"width":240,"height":120,"color":"5","file":"wiki/concepts/agent-outline.md"},
+    {"id":"lit","type":"file","x":360,"y":0,"width":240,"height":120,"color":"5","file":"wiki/concepts/agent-literature-review.md"},
+    {"id":"section","type":"file","x":680,"y":0,"width":240,"height":120,"color":"5","file":"wiki/concepts/agent-section-writing.md"},
+    {"id":"refine","type":"file","x":1000,"y":0,"width":240,"height":120,"color":"5","file":"wiki/concepts/agent-content-refinement.md"},
+    {"id":"pdf","type":"text","x":1320,"y":0,"width":240,"height":120,"color":"3","text":"# final_paper.pdf\ncompiled locally\n(pdflatex + bibtex)"},
+
+    {"id":"outline_out","type":"text","x":40,"y":180,"width":240,"height":80,"color":"2","text":"outline.json"},
+    {"id":"lit_out","type":"text","x":360,"y":180,"width":240,"height":80,"color":"2","text":"updated_template.tex\nreferences.bib\ncitation_map.json"},
+    {"id":"section_out","type":"text","x":680,"y":180,"width":240,"height":80,"color":"2","text":"raw_draft_paper.tex\n(preamble safety net)"},
+    {"id":"refine_loop","type":"text","x":1000,"y":180,"width":240,"height":80,"color":"1","text":"review → revise →\nscore-gated accept\n(revert if score drops)"},
+
+    {"id":"backend","type":"file","x":40,"y":340,"width":500,"height":110,"color":"6","file":"wiki/concepts/llm-backend-routing.md"},
+    {"id":"templates","type":"file","x":560,"y":340,"width":360,"height":110,"color":"6","file":"wiki/concepts/latex-templates.md"},
+    {"id":"autoraters","type":"file","x":940,"y":340,"width":300,"height":110,"color":"6","file":"wiki/concepts/autoraters.md"},
+
+    {"id":"r1","type":"text","x":40,"y":500,"width":1200,"height":90,"color":"1","text":"# R1 — every code/template change MUST sync wiki in the same change\nTrigger → concept doc + wiki/devlog/YYYY-MM.md append. See CLAUDE.md / AGENTS.md."}
+  ],
+  "edges": [
+    {"id":"e1","fromNode":"raw","fromSide":"right","toNode":"outline","toSide":"left"},
+    {"id":"e2","fromNode":"outline","fromSide":"right","toNode":"lit","toSide":"left","label":"outline.json"},
+    {"id":"e3","fromNode":"lit","fromSide":"right","toNode":"section","toSide":"left","label":"template+bib"},
+    {"id":"e4","fromNode":"section","fromSide":"right","toNode":"refine","toSide":"left","label":"raw_draft.tex"},
+    {"id":"e5","fromNode":"refine","fromSide":"right","toNode":"pdf","toSide":"left"},
+
+    {"id":"e6","fromNode":"outline","fromSide":"bottom","toNode":"outline_out","toSide":"top"},
+    {"id":"e7","fromNode":"lit","fromSide":"bottom","toNode":"lit_out","toSide":"top"},
+    {"id":"e8","fromNode":"section","fromSide":"bottom","toNode":"section_out","toSide":"top"},
+    {"id":"e9","fromNode":"refine","fromSide":"bottom","toNode":"refine_loop","toSide":"top"},
+
+    {"id":"e10","fromNode":"backend","fromSide":"top","toNode":"lit","toSide":"bottom"},
+    {"id":"e11","fromNode":"templates","fromSide":"top","toNode":"section","toSide":"bottom"},
+    {"id":"e12","fromNode":"autoraters","fromSide":"top","toNode":"refine","toSide":"bottom"}
+  ]
+}
