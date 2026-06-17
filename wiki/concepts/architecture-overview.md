@@ -17,9 +17,12 @@ raw_material/{idea_sparse.md, experimental_log.md, figures/}
 1. OutlineAgent            → outline.json            (section plan + citation hints)
    │
    ▼
+1.5 StyleAgent (optional)  → style_guide.md          (writing-style guide from best papers)
+   │
+   ▼
 2. HybridLiteratureAgent   → updated_template.tex    (intro + related work)
-                            references.bib            (real, S2-verified citations)
-                            citation_map.json
+   · + local references    references.bib            (real, S2-verified + user-provided citations)
+     (optional, Phase 1.5) citation_map.json
    │
    ▼
 3. SectionWritingAgent     → raw_draft_paper.tex     (all sections + tables + figures)
@@ -51,5 +54,6 @@ Optional: **PlottingAgent** (stage 2.5, parallel) generates figures from code wh
 
 - Per-agent detail: [agent-outline](agent-outline.md), [agent-literature-review](agent-literature-review.md),
   [agent-section-writing](agent-section-writing.md), [agent-content-refinement](agent-content-refinement.md),
-  [agent-plotting](agent-plotting.md)
+  [agent-plotting](agent-plotting.md), [agent-style](agent-style.md)
+- [local-references](local-references.md) (optional Phase-1.5 reference injection)
 - [pipeline.canvas](../pipeline.canvas)

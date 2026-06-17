@@ -24,6 +24,7 @@ from methods.agents.outline_agent import OutlineAgent
 from methods.agents.literature_review_agent import HybridLiteratureAgent
 from methods.agents.section_writing_agent import SectionWritingAgent
 from methods.agents.content_refinement_agent import ContentRefinementAgent
+from methods.agents.style_agent import StyleAgent, resolve_style_papers
 
 from utils.common_utils import (
     create_log_folder,
@@ -38,6 +39,9 @@ def write_single_paper(
     writer_model_name: str = "gemini-3.1-pro-preview",
     reflection_model_name: str = "gemini-3.1-pro-preview",
     research_cutoff: str = "2024-11",
+    local_references_dir: str = None,
+    style_references_dir: str = None,
+    use_style_learning: bool = True,
 ):
     latex_writeup_dir = osp.join(base_dir, "latex_writeup")
     pdf_file = osp.join(base_dir, "final_paper.pdf")
@@ -103,6 +107,19 @@ def write_single_paper(
             )
 
             ###############################################################################################
+            # Step 1.5 (optional): StyleAgent — extract style guide from best papers
+            style_guide = None
+            if use_style_learning:
+                style_papers = resolve_style_papers(style_references_dir, latex_template_dir)
+                if style_papers:
+                    style_guide_path = osp.join(base_dir, "style_guide.md")
+                    style_guide = StyleAgent(
+                        model_name=writer_model_name
+                    ).run(style_papers, style_guide_path)
+                else:
+                    print(" >> No style reference papers found — skipping style learning.")
+
+            ###############################################################################################
             # Step 2: Call HybridLiteratureAgent
             literature_agent_output_dir = osp.join(base_dir, "literature_agent_output")
             literature_agent = HybridLiteratureAgent(
@@ -113,6 +130,8 @@ def write_single_paper(
                 output_dir=literature_agent_output_dir,
                 model_name=writer_model_name,
                 max_workers=3,
+                local_references_dir=local_references_dir,
+                style_guide=style_guide,
             )
             literature_agent.run(
                 outline_path=outline_file_path,
@@ -145,6 +164,7 @@ def write_single_paper(
                 figures_info_path=osp.join(figures_dir, "info.json"),
                 guidelines_path=guidelines_path,
                 model_name=writer_model_name,
+                style_guide=style_guide,
             )
             raw_draft_tex_path = osp.join(latex_writeup_dir, "raw_draft_paper.tex")
             section_writing_agent.run(output_path=raw_draft_tex_path)

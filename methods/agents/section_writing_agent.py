@@ -50,10 +50,16 @@ class SectionWritingAgent:
         figures_info_path: str,
         guidelines_path: str,
         model_name: str = "gemini-3.1-pro-preview",
+        style_guide: str = None,
     ):
 
         self.model_name = model_name
         self.system_prompt = section_writing_agent_prompt
+        if style_guide:
+            self.system_prompt += (
+                "\n\nTARGET-CONFERENCE STYLE GUIDE (mimic this voice/structure):\n"
+                + style_guide
+            )
 
         self.outline_path = outline_path
         self.template_path = template_path

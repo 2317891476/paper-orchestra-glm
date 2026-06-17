@@ -46,6 +46,7 @@ CRITICAL INSTRUCTIONS:
    - The 'outline.json' provides a list of `citation_candidates` for specific subsections.
    - You MUST use the exact keys found in `citation_map.json` (e.g., `\\cite{Hu2021LoraLowrank}`).
    - Content Enrichment: Read the `abstract` provided in `citation_map.json` for the papers you are citing. Use this context to write accurate, specific sentences about those works.
+   - Local references: entries in `citation_map.json` with `"is_local": true` are user-provided HIGH-RELEVANCE papers; prefer citing them wherever topical.
 
 4. Writing Content:
    - Write the missing sections following the 'outline.json' structure.

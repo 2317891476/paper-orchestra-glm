@@ -57,6 +57,7 @@ class PaperData(BaseModel):
     volume: Optional[str] = None
     pages: Optional[str] = None
     publication_date: Optional[str] = None
+    is_local: bool = False
 
 
 class WriterOutput(BaseModel):
@@ -74,12 +75,16 @@ class HybridLiteratureAgent:
         output_dir: str,
         model_name: str = "gemini-3.1-pro-preview",
         max_workers: int = 5,
+        local_references_dir: str = None,
+        style_guide: str = None,
     ):
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
         self.model_name = model_name
         self.max_workers = max_workers
+        self.local_references_dir = local_references_dir
+        self.style_guide = style_guide
         self.context_paths = {
             "idea.md": idea_path,
             "experimental_log.md": experimental_log_path,
@@ -138,6 +143,15 @@ class HybridLiteratureAgent:
         self._safe_print(
             f"\n✨ Final Count: {len(unique_papers_registry)} unique enriched papers retrieved."
         )
+
+        # --- PHASE 1.5: LOCAL REFERENCES (user-provided, always citable) ---
+        local_count = self._load_and_register_local_references(
+            unique_papers_registry, cutoff_date
+        )
+        if local_count:
+            self._safe_print(
+                f"📂 Registered {local_count} local user-provided reference(s)."
+            )
 
         # --- PHASE 2: ASSET GENERATION ---
         final_papers_list = list(unique_papers_registry.values())
@@ -275,6 +289,34 @@ class HybridLiteratureAgent:
 
         return tasks
 
+    def _load_and_register_local_references(
+        self, registry: Dict[str, PaperData], cutoff_date: str
+    ) -> int:
+        """Load user-provided local references (PDF + .bib) and register them.
+
+        Local papers bypass the Semantic Scholar / cutoff pipeline — they are always
+        citable. Registered directly into `registry` so _generate_bibtex /
+        _generate_citation_map / the section agent (via citation_map.json) can use them.
+        """
+        if not self.local_references_dir or not os.path.isdir(
+            self.local_references_dir
+        ):
+            return 0
+
+        from utils.local_reference_utils import load_local_references
+
+        local_papers = load_local_references(
+            self.local_references_dir, self.model_name
+        )
+        added = 0
+        for p in local_papers:
+            norm = self._normalize_title(p.title)
+            if not norm or norm in registry:
+                continue
+            registry[norm] = p
+            added += 1
+        return added
+
     def _inject_citations_into_outline(
         self, outline: Dict, registry: Dict[str, PaperData]
     ) -> Dict:
@@ -288,16 +330,23 @@ class HybridLiteratureAgent:
 
         plan = outline.get("intro_related_work_plan", {})
 
+        # Local (user-provided) papers get broad visibility as high-relevance hints.
+        local_keys = [
+            p.citation_key for p in registry.values() if getattr(p, "is_local", False)
+        ]
+
         # Introduction
         intro_strat = plan.get("introduction_strategy", {})
         intro_keys = section_to_keys.get("Introduction", [])
-        intro_strat["citation_candidates"] = list(set(intro_keys))
+        intro_strat["citation_candidates"] = list(set(intro_keys + local_keys))
 
         # Related Work
         rw_strat = plan.get("related_work_strategy", {})
         for sub in rw_strat.get("subsections", []):
             key = f"Related Work: {sub.get('subsection_title', 'General')}"
-            sub["citation_candidates"] = section_to_keys.get(key, [])
+            sub["citation_candidates"] = list(
+                set(section_to_keys.get(key, []) + local_keys)
+            )
 
         # Other Sections
         blueprint = outline.get("section_plan", [])
@@ -504,6 +553,11 @@ class HybridLiteratureAgent:
             min_cite_paper_count=int(len(papers) * 0.9),
             cutoff_date=cutoff_date,
         )
+        if self.style_guide:
+            writer_system_prompt += (
+                "\n\nTARGET-CONFERENCE STYLE GUIDE (mimic this voice/structure):\n"
+                + self.style_guide
+            )
 
         user_prompt = "Generate the LaTeX for Introduction and Related Work sections.\n\nContext:\n" + json.dumps(context_payload)
         response_dict = call_llm_with_text_prompt(
@@ -578,18 +632,21 @@ class HybridLiteratureAgent:
         return "\n\n".join(entries)
 
     def _generate_citation_map(self, papers: List[PaperData]) -> Dict[str, Dict]:
-        return {
-            p.citation_key: {
+        out = {}
+        for p in papers:
+            # Local (user-provided) papers are always citable even without an abstract.
+            if not p.abstract and not getattr(p, "is_local", False):
+                continue
+            out[p.citation_key] = {
                 "citation_key": p.citation_key,
                 "title": p.title,
                 "authors": p.authors,
                 "venue": p.venue,
                 "year": p.year,
-                "abstract": p.abstract.strip(),
+                "abstract": (p.abstract or "").strip(),
+                "is_local": getattr(p, "is_local", False),
             }
-            for p in papers
-            if p.abstract
-        }
+        return out
 
     def _save_outputs(self, latex, bibtex, citation_map, outline, outline_path):
         with open(

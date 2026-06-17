@@ -33,6 +33,7 @@ CITATION REQUIREMENTS:
 - You MUST cite at least {min_cite_paper_count} of them across the introduction and related work sections.
 - Introduction: Cite key statistics, foundational works, and broad problem statements.
 - Related Work: Do deep comparative citations. Group distinct works (e.g., "Several methods [A, B, C]...").
+- Papers flagged `is_local=true` in 'collected_papers' are user-provided HIGH-RELEVANCE references; prefer citing them wherever topical.
 - Ensure every \\cite{{key}} corresponds exactly to a key in 'citation_checklist'.
 - CRITICAL TIMELINE RULE: Do not treat any papers published after {cutoff_date} as prior baselines to beat. Treat them strictly as concurrent work.
 - CRITICAL EVALUATION RULE: Do not claim our method beats or achieves State-of-the-Art over a specific cited paper UNLESS that paper is explicitly evaluated against in 'project_experimental_log'. Frame other recent papers strictly as concurrent, orthogonal, or conceptual work.

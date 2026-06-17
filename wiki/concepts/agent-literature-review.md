@@ -27,7 +27,10 @@ the Introduction and Related Work sections.
 
 1. **Discovery** — `_discover_candidates` (per search task, parallel)
 2. **Retrieval** — `s2_title_search` enrichment, rate-limited (~1 req/s)
-3. **Writing** — synthesize intro + related work LaTeX
+3. **1.5 Local references** — `_load_and_register_local_references` ingests user-provided
+   PDF/.bib into the registry (bypasses S2 + cutoff). See [local-references](local-references.md).
+4. **Writing** — synthesize intro + related work LaTeX (appends the style guide, if any,
+   to the writer system prompt; see [agent-style](agent-style.md))
 
 ## Outputs
 

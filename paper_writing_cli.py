@@ -71,6 +71,26 @@ def main():
         help="Enable plotting agent workflow to generate figures from code.",
     )
     parser.add_argument(
+        "--local_references_dir",
+        default=None,
+        help="Directory with user-provided reference PDFs/.bib (always citable). "
+        "Default: <raw_materials_dir>/references/",
+    )
+    parser.add_argument(
+        "--style_references_dir",
+        default=None,
+        help="Directory with target-conference 'best paper' PDFs for style learning. "
+        "Default: <raw_materials_dir>/style_references/ (falls back to "
+        "templates/<conf>/style_papers/).",
+    )
+    parser.add_argument(
+        "--use_style_learning",
+        type=lambda x: (str(x).lower() in ["true", "1", "yes"]),
+        default=True,
+        help="Extract a writing-style guide from best papers and feed it to the writers "
+        "(no-op if no style papers found).",
+    )
+    parser.add_argument(
         "--plotting_model_name",
         default="glm-5.2",
         help="LLM for the plotting agent.",
@@ -91,6 +111,16 @@ def main():
 
     if args.research_cutoff is None:
         args.research_cutoff = datetime.now().strftime("%Y-%m")
+
+    # Auto-detect local references / style references folders by convention.
+    if args.local_references_dir is None:
+        _candidate = os.path.join(args.raw_materials_dir, "references")
+        if os.path.isdir(_candidate):
+            args.local_references_dir = _candidate
+    if args.style_references_dir is None:
+        _candidate = os.path.join(args.raw_materials_dir, "style_references")
+        if os.path.isdir(_candidate):
+            args.style_references_dir = _candidate
 
     if not os.path.exists(args.raw_materials_dir):
         print(
@@ -153,6 +183,9 @@ def main():
             image_model_name=args.image_model_name,
             research_cutoff=args.research_cutoff,
             plotting_max_critic_rounds=args.plotting_max_critic_rounds,
+            local_references_dir=args.local_references_dir,
+            style_references_dir=args.style_references_dir,
+            use_style_learning=args.use_style_learning,
         )
     else:
         from methods.paper_writer import write_single_paper
@@ -169,6 +202,9 @@ def main():
             writer_model_name=args.writer_model_name,
             reflection_model_name=args.reflection_model_name,
             research_cutoff=args.research_cutoff,
+            local_references_dir=args.local_references_dir,
+            style_references_dir=args.style_references_dir,
+            use_style_learning=args.use_style_learning,
         )
 
 

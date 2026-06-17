@@ -37,7 +37,9 @@ python paper_writing_cli.py \
 **Pipeline & agents**
 - [architecture-overview](concepts/architecture-overview.md) — the 5-stage multi-agent pipeline at a glance
 - [agent-outline](concepts/agent-outline.md) — OutlineAgent
+- [agent-style](concepts/agent-style.md) — StyleAgent (optional Step 1.5: style guide from best papers)
 - [agent-literature-review](concepts/agent-literature-review.md) — HybridLiteratureAgent + venue targeting
+- [local-references](concepts/local-references.md) — user-provided always-citable references (PDF + .bib)
 - [agent-section-writing](concepts/agent-section-writing.md) — SectionWritingAgent + preamble safety net
 - [agent-content-refinement](concepts/agent-content-refinement.md) — ContentRefinementAgent + score-driven loop
 - [agent-plotting](concepts/agent-plotting.md) — PlottingAgent (figures from code)
@@ -61,6 +63,7 @@ python paper_writing_cli.py \
 
 ## Timeline (landed milestones only)
 
+- **2026-06** — Added **local references** (PDF + .bib, always-citable, `is_local` flag) and **StyleAgent** (Step 1.5, text+visual style guide from best papers); both optional, CLI-flagged.
 - **2026-06** — Fork adapted to GLM-5.2 (OpenAI-compatible backend, `LLM_BACKEND` routing, lazy clients).
 - **2026-06** — Added `templates/hpca2027/` with `venues.md` conference-specific literature targeting.
 - **2026-06** — Made all prompts domain-neutral; domains now live in `guidelines.md` + `venues.md`.
