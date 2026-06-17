@@ -16,13 +16,14 @@ import os
 import traceback
 import json
 import shutil
-from google.genai import types  # type: ignore
 
 from utils.pdf_utils import compile_latex, load_paper, pdf_to_grid_images
-from utils.gemini_utils import (
-    call_gemini_with_contents,
-    parse_gemini_json_latex_response,
-    call_gemini_with_images,
+from utils.llm_backend_utils import (
+    call_llm_with_text_prompt,
+    call_llm_with_pdf,
+    call_llm_with_images,
+    parse_latex_results,
+    parse_json_latex_response,
 )
 
 from autoraters.agent_review import perform_review_agentreview
@@ -162,7 +163,7 @@ Respond in JSON format with the following structure:
 ```
 """
             )
-            response_dict = call_gemini_with_images(
+            response_dict = call_llm_with_images(
                 prompt=prompt,
                 images=image_paths,
                 model_name=self.model_name,
@@ -285,21 +286,14 @@ INSTRUCTION:
 
             valid_pdf_for_context = final_valid_pdf_path
 
-            with open(valid_pdf_for_context, "rb") as f:
-                pdf_bytes = f.read()
-
             print(" >> calling Refinement Agent...")
             try:
-                response_dict = call_gemini_with_contents(
-                    contents=[
-                        types.Part.from_bytes(
-                            data=pdf_bytes, mime_type="application/pdf"
-                        ),
-                        types.Part.from_text(text=user_prompt_text),
-                    ],
-                    generation_configs={"system_instruction": self.system_prompt},
+                response_dict = call_llm_with_pdf(
+                    pdf_path=valid_pdf_for_context,
+                    prompt=user_prompt_text,
                     model_name=self.model_name,
-                    result_parsing_func=parse_gemini_json_latex_response,
+                    system_instruction=self.system_prompt,
+                    result_parsing_func=parse_json_latex_response,
                 )
 
                 parsed = json.loads(response_dict["parsed_response"])
@@ -517,12 +511,11 @@ block.
 """
 
             try:
-                response_dict = call_gemini_with_contents(
-                    contents=[
-                        types.Part.from_text(text=prompt),
-                    ],
+                response_dict = call_llm_with_text_prompt(
+                    prompt=prompt,
                     model_name=self.model_name,
-                    result_parsing_func=lambda x: {"raw_response": x},
+                    return_json=False,
+                    result_parsing_func=lambda x: x,
                     check_parsed_response_not_none=False,
                 )
 

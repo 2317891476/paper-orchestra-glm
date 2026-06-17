@@ -14,7 +14,7 @@
 
 from utils.prompt_utils import UNIVERSAL_NO_LEAKAGE_PROMPT
 
-content_refinement_agent_system_prompt = """Role: Senior AI Researcher.
+content_refinement_agent_system_prompt = """Role: Senior Researcher.
 Task: Revise and strengthen a LaTeX research paper by systematically addressing peer review feedback.
 
 You are the author responsible for the "Rebuttal via Revision" phase. You will receive:

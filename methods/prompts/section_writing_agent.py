@@ -14,7 +14,7 @@
 
 from utils.prompt_utils import UNIVERSAL_NO_LEAKAGE_PROMPT
 
-section_writing_agent_prompt = """Role: Senior AI Researcher.
+section_writing_agent_prompt = """Role: Senior Researcher.
 Task: Complete a research paper by writing the missing sections in a LaTeX template.
 
 You will be given a 'template.tex' file where some sections (e.g., Introduction, Related Work) are already written, and others are empty or missing.
@@ -65,7 +65,8 @@ CRITICAL INSTRUCTIONS:
    - Don't include "Figure x" in the caption text, the LaTeX template will handle the figure numbering.
 
 6. Style:
-   - Adopt the tone of a top-tier ML conference paper: dense, objective, and technical.
+   - Adopt the tone of a top-tier research paper in the target field: dense, objective, and technical.
+   - For computer architecture / systems papers, emphasize system design rationale, evaluation methodology (workloads, simulators, area/power/timing costs), and quantitative performance/cost trade-offs.
    - Ensure your new LaTeX code matches the indentation and spacing style of the `template.tex`. Don't change the given style.
 
 OUTPUT FORMAT:

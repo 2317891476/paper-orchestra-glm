@@ -14,7 +14,7 @@
 
 from utils.prompt_utils import UNIVERSAL_NO_LEAKAGE_PROMPT
 
-literature_review_agent_writter_prompt = """Role: Senior AI Researcher.
+literature_review_agent_writter_prompt = """Role: Senior Researcher.
 Task: Write the introduction and related work section of a paper.
 
 You will be given a 'template.tex', this is the initial skeleton we outlined for you. 
@@ -31,7 +31,7 @@ YOU MUST ONLY CITE THE GIVEN 'collected_papers', DO NOT cite new papers other th
 CITATION REQUIREMENTS:
 - You have access to the abstract of {paper_count} collected papers.
 - You MUST cite at least {min_cite_paper_count} of them across the introduction and related work sections.
-- Introduction: Cite key statistics, foundational models (CLIP, etc.), and broad problem statements.
+- Introduction: Cite key statistics, foundational works, and broad problem statements.
 - Related Work: Do deep comparative citations. Group distinct works (e.g., "Several methods [A, B, C]...").
 - Ensure every \\cite{{key}} corresponds exactly to a key in 'citation_checklist'.
 - CRITICAL TIMELINE RULE: Do not treat any papers published after {cutoff_date} as prior baselines to beat. Treat them strictly as concurrent work.

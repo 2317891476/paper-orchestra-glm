@@ -16,7 +16,7 @@ import os
 import json
 import numpy as np
 
-from utils.gemini_utils import call_gemini_with_text_prompt
+from utils.llm_backend_utils import call_llm_with_text_prompt as call_gemini_with_text_prompt
 
 # --- AGENTREVIEW SPECIFIC CONSTANTS (From role_descriptions.py) ---
 
@@ -181,7 +181,7 @@ Here is the paper you are asked to review:
     return review
 
 
-meta_reviewer_system_prompt = """You are a very knowledgeable and experienced area chair at a top-tier machine learning conference.
+meta_reviewer_system_prompt = """You are a very knowledgeable and experienced area chair at a top-tier conference in the target field.
 You are in charge of meta-reviewing a paper that was reviewed by {reviewer_count} reviewers.
 Your job is to aggregate the reviews into a single meta-review in the same format.
 You are an inclusive area chair. You tend to hear from all reviewers' opinions and combine them with your own judgments to make the final decision."""

@@ -5,3 +5,14 @@
 datasets/*
 paper_output*
 *.zip
+
+# Personal research materials (input data, not part of the tool)
+raw_material/
+
+# Original template tarball + Windows metadata
+*.tar.gz
+*:Zone.Identifier
+
+# Local throwaway scripts
+/fix_and_recompile.py
+/test_*.py

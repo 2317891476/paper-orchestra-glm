@@ -27,11 +27,24 @@ from dotenv import load_dotenv  # type: ignore
 dot_file = os.path.join(os.path.dirname(__file__), "../.env")
 load_dotenv(dot_file)
 
-openai_api_key = os.environ.get("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY must be set.")
+openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+openai_base_url = os.environ.get("OPENAI_BASE_URL", None)
 
-openai_client = OpenAI(api_key=openai_api_key)
+openai_client = None
+
+
+def _get_openai_client():
+    global openai_client
+    if openai_client is not None:
+        return openai_client
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY must be set to use OpenAI-compatible backend.")
+    client_kwargs = {"api_key": openai_api_key}
+    if openai_base_url:
+        print(f"Using OpenAI-compatible base URL: {openai_base_url}")
+        client_kwargs["base_url"] = openai_base_url
+    openai_client = OpenAI(**client_kwargs)
+    return openai_client
 
 
 def parse_openai_json_results(response: str):
@@ -116,7 +129,7 @@ def call_openai_models_with_content(
 
             messages.append({"role": "user", "content": content})
 
-            response = openai_client.chat.completions.create(
+            response = _get_openai_client().chat.completions.create(
                 model=model_name,
                 messages=messages,
                 **generation_configs,

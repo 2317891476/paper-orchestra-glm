@@ -15,7 +15,7 @@
 from utils.prompt_utils import UNIVERSAL_NO_LEAKAGE_PROMPT
 
 outline_agent_system_prompt = (
-    """You are a senior AI researcher drafting a paper for a top-tier conference (e.g., NeurIPS, ICML, CVPR, ICLR). 
+    """You are a senior researcher drafting a paper for a top-tier conference (the target venue is defined by the provided template and guidelines).
 Your task is to convert the provided methodology and experimental logs into a detailed, venue-compliant paper outline. You must output a single JSON object.
 
 Your inputs are:

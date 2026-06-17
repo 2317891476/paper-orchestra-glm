@@ -13,41 +13,89 @@
 # limitations under the License.
 
 import json
+import os
+import re
 from typing import Optional, Callable, Dict, Any
 
-from google.genai import types
+import dotenv
 
-from utils.gemini_utils import (
-    call_gemini_with_text_prompt,
-    parse_gemini_json_results,
-    call_gemini_with_contents,
-    call_gemini_with_images,
-)
-from utils.openai_utils import (
-    call_openai_models_with_text_prompt,
-    call_openai_models_with_content,
-    parse_openai_json_results,
-    get_openai_image_part_from_path,
-)
-from utils.pdf_utils import load_paper
+dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))
+
+LLM_BACKEND = os.environ.get("LLM_BACKEND", "auto").lower()
+
+_gemini_utils = None
+_openai_utils = None
+_pdf_utils = None
+
+
+def _import_gemini():
+    global _gemini_utils
+    if _gemini_utils is None:
+        import utils.gemini_utils as _m
+        _gemini_utils = _m
+    return _gemini_utils
+
+
+def _import_openai():
+    global _openai_utils
+    if _openai_utils is None:
+        import utils.openai_utils as _m
+        _openai_utils = _m
+    return _openai_utils
+
+
+def _import_pdf():
+    global _pdf_utils
+    if _pdf_utils is None:
+        import utils.pdf_utils as _m
+        _pdf_utils = _m
+    return _pdf_utils
+
+
+def _is_openai_backend(model_name: str) -> bool:
+    if LLM_BACKEND == "openai_compatible":
+        return True
+    if LLM_BACKEND == "gemini":
+        return False
+    # auto: fall back to model-name heuristic
+    return any(k in model_name.lower() for k in ("gpt", "o1", "o3"))
 
 
 def identity_parse(response: str):
     return response
 
 
+def parse_latex_results(response: str) -> str:
+    """Extract LaTeX code from LLM response (generic, works with any backend)."""
+    match = re.search(r"```latex\s*(.*?)\s*```", response.strip(), re.DOTALL)
+    if match:
+        return match.group(1)
+    return response
+
+
+def parse_json_latex_response(response_text: str) -> str:
+    """Extract JSON worklog and LaTeX code from LLM response (generic)."""
+    result = {"json": None, "latex": None}
+    json_match = re.search(r"```json\s*(.*?)\s*```", response_text, re.DOTALL)
+    if json_match:
+        try:
+            result["json"] = json.loads(json_match.group(1))
+        except json.JSONDecodeError:
+            result["json"] = {"error": "Invalid JSON format returned"}
+    latex_match = re.search(r"```latex\s*(.*?)\s*```", response_text, re.DOTALL)
+    if latex_match:
+        result["latex"] = latex_match.group(1)
+    return json.dumps(result)
+
+
 def get_llm_parser(model_name: str, return_json: bool = True) -> Callable:
     if not return_json:
         return identity_parse
 
-    if (
-        "gpt" in model_name.lower()
-        or "o1" in model_name.lower()
-        or "o3" in model_name.lower()
-    ):
-        return parse_openai_json_results
+    if _is_openai_backend(model_name):
+        return _import_openai().parse_openai_json_results
     else:
-        return parse_gemini_json_results
+        return _import_gemini().parse_gemini_json_results
 
 
 def call_llm_with_text_prompt(
@@ -70,11 +118,7 @@ def call_llm_with_text_prompt(
     if generation_configs is None:
         generation_configs = {}
 
-    if (
-        "gpt" in model_name.lower()
-        or "o1" in model_name.lower()
-        or "o3" in model_name.lower()
-    ):
+    if _is_openai_backend(model_name):
         system_prompt = None
         configs_for_openai = dict(generation_configs) if generation_configs else {}
         if "system_instruction" in configs_for_openai:
@@ -82,7 +126,7 @@ def call_llm_with_text_prompt(
         if "temperature" in configs_for_openai:
             configs_for_openai.pop("temperature")
 
-        response_dict = call_openai_models_with_text_prompt(
+        response_dict = _import_openai().call_openai_models_with_text_prompt(
             prompt=prompt,
             model_name=model_name,
             generation_configs=configs_for_openai,
@@ -92,7 +136,7 @@ def call_llm_with_text_prompt(
         )
         return response_dict
     else:
-        response_dict = call_gemini_with_text_prompt(
+        response_dict = _import_gemini().call_gemini_with_text_prompt(
             prompt=prompt,
             model_name=model_name,
             generation_configs=generation_configs,
@@ -123,13 +167,8 @@ def call_llm_with_images(
     if generation_configs is None:
         generation_configs = {}
 
-    if (
-        "gpt" in model_name.lower()
-        or "o1" in model_name.lower()
-        or "o3" in model_name.lower()
-    ):
+    if _is_openai_backend(model_name):
         system_prompt = None
-        # Copy to avoid side-effects on caller's dictionary
         configs_for_openai = dict(generation_configs) if generation_configs else {}
         if "system_instruction" in configs_for_openai:
             system_prompt = configs_for_openai.pop("system_instruction")
@@ -138,9 +177,9 @@ def call_llm_with_images(
 
         content = [{"type": "text", "text": prompt}]
         for image_path in images:
-            content.extend(get_openai_image_part_from_path(image_path))
+            content.extend(_import_openai().get_openai_image_part_from_path(image_path))
 
-        response_dict = call_openai_models_with_content(
+        response_dict = _import_openai().call_openai_models_with_content(
             content=content,
             model_name=model_name,
             generation_configs=configs_for_openai,
@@ -150,7 +189,7 @@ def call_llm_with_images(
         )
         return response_dict
     else:
-        response_dict = call_gemini_with_images(
+        response_dict = _import_gemini().call_gemini_with_images(
             prompt=prompt,
             images=images,
             model_name=model_name,
@@ -181,16 +220,12 @@ def call_llm_with_pdf(
         else get_llm_parser(model_name, return_json)
     )
 
-    if (
-        "gpt" in model_name.lower()
-        or "o1" in model_name.lower()
-        or "o3" in model_name.lower()
-    ):
-        paper_text = load_paper(pdf_path, min_size=100)
+    if _is_openai_backend(model_name):
+        paper_text = _import_pdf().load_paper(pdf_path, min_size=100)
         full_prompt = f"Paper Content:\n{paper_text}\n\nTask:\n{prompt}"
 
         generation_configs = {}
-        response_dict = call_openai_models_with_text_prompt(
+        response_dict = _import_openai().call_openai_models_with_text_prompt(
             prompt=full_prompt,
             model_name=model_name,
             generation_configs=generation_configs,
@@ -200,6 +235,8 @@ def call_llm_with_pdf(
         )
         return response_dict
     else:
+        from google.genai import types
+
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
 
@@ -212,7 +249,7 @@ def call_llm_with_pdf(
         if system_instruction is not None:
             generation_configs["system_instruction"] = system_instruction
 
-        response_dict = call_gemini_with_contents(
+        response_dict = _import_gemini().call_gemini_with_contents(
             contents=contents,
             model_name=model_name,
             generation_configs=generation_configs,

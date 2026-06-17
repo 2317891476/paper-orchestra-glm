@@ -33,8 +33,7 @@ import json
 from typing import List, Dict
 
 from methods.prompts.section_writing_agent import section_writing_agent_prompt
-from utils.gemini_utils import parse_gemini_latex_results
-from utils.llm_backend_utils import call_llm_with_images
+from utils.llm_backend_utils import call_llm_with_images, parse_latex_results
 
 import json
 from typing import List, Dict
@@ -206,13 +205,42 @@ Here are the input materials for the paper.
                 "temperature": 0.7,
             },
             model_name=self.model_name,
-            result_parsing_func=parse_gemini_latex_results,
+            result_parsing_func=parse_latex_results,
             check_parsed_response_not_none=True,
         )
         cleaned_latex = response_dict["parsed_response"]
+
+        # Safety net: LLMs sometimes drop the LaTeX preamble (documentclass + usepackages).
+        # If so, restore the preamble from the original template.
+        cleaned_latex = self._restore_preamble_if_missing(cleaned_latex, template_content)
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(cleaned_latex)
 
         print(f" > Paper saved to {output_path}")
         return cleaned_latex
+
+    def _restore_preamble_if_missing(self, latex: str, template: str) -> str:
+        """If the generated LaTeX is missing \\documentclass, splice the template preamble back in."""
+        if r"\documentclass" in latex:
+            return latex
+        # Find where the body begins: prefer a known marker the LLM tends to keep,
+        # otherwise fall back to the first \begin{document} or the file start.
+        markers = [r"\pdfpagewidth", r"\newcommand{\hpcayear}", r"\begin{document}"]
+        body_start_idx = len(latex)
+        for marker in markers:
+            idx = latex.find(marker)
+            if idx != -1 and idx < body_start_idx:
+                body_start_idx = idx
+        body = latex[body_start_idx:]
+
+        # Extract the template preamble: everything up to the first body marker.
+        tmpl_end_idx = len(template)
+        for marker in markers:
+            idx = template.find(marker)
+            if idx != -1 and idx < tmpl_end_idx:
+                tmpl_end_idx = idx
+        preamble = template[:tmpl_end_idx]
+
+        print(" > [Safety net] \\documentclass was missing — preamble restored from template.")
+        return preamble + body

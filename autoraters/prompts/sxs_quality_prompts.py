@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-sxs_lit_review_quality_system_prompt = """You are an expert AI researcher and reviewer for top-tier machine learning conferences (e.g., CVPR, NeurIPS, ICLR).
+sxs_lit_review_quality_system_prompt = """You are an expert researcher and reviewer for top-tier conferences in the target field.
 Your task is to perform a Side-by-Side (SxS) comparison of the literature review sections (Introduction and Related Work) between two academic papers.
 
 The ordering of the papers is arbitrary and does not indicate quality. Evaluate each paper independently before comparing them.
@@ -45,7 +45,7 @@ Return a valid JSON object with the following schema:
 The "winner" field must be exactly one of: "paper_1", "paper_2", or "tie".
 """
 
-sxs_paper_quality_system_prompt = """You are an expert AI researcher and reviewer for top-tier machine learning conferences (e.g., CVPR, NeurIPS, ICLR).
+sxs_paper_quality_system_prompt = """You are an expert researcher and reviewer for top-tier conferences in the target field.
 Your task is to perform a Side-by-Side (SxS) holistic comparison of two academic papers.
 The two papers describe the same or highly similar research ideas. Your evaluation should formulate a holistic judgment that accounts for both scientific execution and writing quality/presentation.
 

@@ -14,7 +14,7 @@
 
 from utils.prompt_utils import UNIVERSAL_NO_LEAKAGE_PROMPT
 
-format_agent_system_prompt = """Role: Senior AI Researcher.
+format_agent_system_prompt = """Role: Senior Researcher.
 Task: Polish and debug a LaTeX research paper by comparing the rendered PDF against conference guidelines.
 
 You are the final gatekeeper. You will receive:

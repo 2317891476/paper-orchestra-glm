@@ -20,12 +20,15 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional, Dict
 from pydantic import BaseModel
-from google.genai import types  # type: ignore
 
 from methods.prompts.literature_review_agent import (
     literature_review_agent_writter_prompt,
 )
-from utils.gemini_utils import call_gemini_with_contents, parse_gemini_latex_results
+from utils.llm_backend_utils import (
+    call_llm_with_text_prompt,
+    parse_latex_results,
+    _is_openai_backend,
+)
 from utils.scholar_utils import s2_title_search
 
 
@@ -84,7 +87,14 @@ class HybridLiteratureAgent:
             "conference_guidelines.md": conference_guidelines_path,
         }
         self.context_files = self._load_context_files()
-        self.google_search_tool = types.Tool(google_search=types.GoogleSearch())
+        self.target_venues = self._load_target_venues(conference_guidelines_path)
+        self._use_google_search = not _is_openai_backend(model_name)
+        if self._use_google_search:
+            try:
+                from google.genai import types as _types
+                self.google_search_tool = _types.Tool(google_search=_types.GoogleSearch())
+            except Exception:
+                self._use_google_search = False
 
         self.registry_lock = threading.Lock()
         self.print_lock = threading.Lock()
@@ -432,12 +442,12 @@ class HybridLiteratureAgent:
         if task.get("search_type") == "targeted":
             prompt = f"""
             Identify the SPECIFIC academic paper described by this hint: "{task['focus']}".
-            
+
             CONTEXT: {task['context']}
             CUTOFF DATE: Published BEFORE {cutoff_date}
-            
+
             INSTRUCTIONS:
-            1. Use Google Search to find the EXACT title and year of this paper.
+            1. Use your knowledge to find the EXACT title and year of this paper.
             2. If the hint refers to a dataset, model architecture, or baseline (e.g., "research paper introducing..."), you MUST find the primary, original paper that introduced it.
             3. Return EXACTLY 1 candidate paper that matches best.
 
@@ -447,27 +457,27 @@ class HybridLiteratureAgent:
         else:
             prompt = f"""
             Find 10-15 highly relevant, influential academic papers matching the search task. Do not force results; only return strictly relevant papers.
-            
+
             SEARCH TASK: {task['focus']}
             CONTEXT FOR TASK: {task['context']}
             BROADER PROJECT PROBLEM: {core_problem}
             CUTOFF DATE: Published BEFORE {cutoff_date}
-            
+
+            TARGET VENUES (prioritize papers from these venues):
+            {self.target_venues}
+
             INSTRUCTIONS:
-            1. Use Google Search to find REAL papers (ArXiv, CVPR, NeurIPS, ICML, ICLR, etc.).
-            2. Only return papers published in top-tier conferences or journals, or highly-cited works, or the exact state-of-the-art relevant to the task.
+            1. Find REAL papers matching the TARGET VENUES above.
+            2. Only return papers published in {self.target_venues}.
 
             YOU MUST return the results in json format (```json content```) following this schema:
             {DiscoveryResult.model_json_schema()}
             """
 
-        response_dict = call_gemini_with_contents(
-            model_name="gemini-3-flash-preview",
-            contents=[prompt],
-            generation_configs={
-                "tools": [self.google_search_tool],
-                "temperature": 0.1 if task.get("search_type") == "targeted" else 0.4,
-            },
+        response_dict = call_llm_with_text_prompt(
+            prompt=prompt,
+            model_name=self.model_name,
+            generation_configs={"temperature": 0.1 if task.get("search_type") == "targeted" else 0.4},
         )
 
         if response_dict["parsed_response"]:
@@ -495,12 +505,12 @@ class HybridLiteratureAgent:
             cutoff_date=cutoff_date,
         )
 
-        user_prompt = "Generate the LaTeX for Introduction and Related Work sections."
-        response_dict = call_gemini_with_contents(
+        user_prompt = "Generate the LaTeX for Introduction and Related Work sections.\n\nContext:\n" + json.dumps(context_payload)
+        response_dict = call_llm_with_text_prompt(
+            prompt=user_prompt,
             model_name=self.model_name,
-            contents=[user_prompt, json.dumps(context_payload)],
             generation_configs={"system_instruction": writer_system_prompt},
-            result_parsing_func=parse_gemini_latex_results,
+            result_parsing_func=parse_latex_results,
         )
         return response_dict["parsed_response"]
 
@@ -602,6 +612,20 @@ class HybridLiteratureAgent:
             else:
                 loaded[name] = ""
         return loaded
+
+    def _load_target_venues(self, guidelines_path: str) -> str:
+        """Load conference-specific venue list from venues.md next to guidelines."""
+        default = (
+            "top-tier conferences or journals in the field, or highly-cited works, "
+            "or the exact state-of-the-art relevant to the task"
+        )
+        if not guidelines_path:
+            return default
+        venues_path = os.path.join(os.path.dirname(guidelines_path), "venues.md")
+        if os.path.exists(venues_path):
+            with open(venues_path, "r", encoding="utf-8") as f:
+                return f.read()
+        return default
 
     def _normalize_title(self, title):
         return re.sub(r"[^a-z0-9]", "", title.lower())
