@@ -27,8 +27,13 @@ Priority: `raw_material/style_references/` (run-level, or `--style_references_di
    `avg_paragraph_chars`, `has_related_work`, `n_section_types_observed`.
 5. LLM `style_extraction_prompt` (voice-focused; told the measured structure + bank sections
    so it doesn't restate them) → markdown summary. Visual mode (page grid) with text-only fallback.
-6. Persist: `style_guide.md` (summary + structure + bank index, human-readable) +
-   `style_bank.json` (full profile).
+6. **Sentence-level templates** (`_extract_sentence_templates`, ZeroStylus 2nd granularity):
+   one LLM call extracts reusable phrasings by rhetorical function
+   (opening_hook / problem_statement / contribution / approach_overview / comparison /
+   result_claim / transition / limitation_future), with variable parts generalized
+   (e.g. `[System Name]`).
+7. Persist: `style_guide.md` (summary + structure + bank index + sentence templates,
+   human-readable) + `style_bank.json` (full profile).
 
 Return: `{"summary", "bank", "structure", "bank_path"}` or `None` (graceful no-op).
 
@@ -36,14 +41,15 @@ Return: `{"summary", "bank", "structure", "bank_path"}` or `None` (graceful no-o
 
 Helpers in `style_agent.py`:
 - `style_summary(profile)` → str (for system prompt)
-- `exemplars_block(profile, sections, max_per_section=1)` → formatted **real passages** (for user prompt)
+- `exemplars_block(profile, sections, max_per_section=1)` → formatted **real passages** (paragraph-level, for user prompt)
+- `sentence_templates_block(profile, functions, max_per_function=2)` → formatted **sentence templates** by rhetorical function (sentence-level, for user prompt)
 
-- `HybridLiteratureAgent._synthesize_content`: summary → system prompt; exemplars for
-  `["introduction", "related_work"]` → user prompt.
-- `SectionWritingAgent.run`: summary → system prompt; exemplars for
-  `["method", "evaluation", "conclusion", "introduction"]` → user prompt.
+- `HybridLiteratureAgent._synthesize_content`: summary → system prompt; intro/related-work
+  paragraph exemplars + sentence templates (hook/problem/contribution/comparison/transition) → user prompt.
+- `SectionWritingAgent.run`: summary → system prompt; method/eval/conclusion paragraph
+  exemplars + sentence templates (approach/result/comparison/transition/limitation) → user prompt.
 
-So each writer gets **concrete few-shot passages** for exactly the sections it writes.
+So each writer gets **concrete few-shot passages + sentence templates** for exactly what it writes.
 
 ## Code pointers
 
@@ -62,6 +68,6 @@ So each writer gets **concrete few-shot passages** for exactly the sections it w
 
 ## TODO / flesh out
 
+- [x] Sentence-level templates (ZeroStylus 2nd granularity) — implemented
 - [ ] Confirm glm-5.2 vision for the visual summary step
 - [ ] Add a style-adherence signal to the autorater/refinement loop
-- [ ] Sentence-level templates (ZeroStylus 2nd granularity) — currently paragraph-level only

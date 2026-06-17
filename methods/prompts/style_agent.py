@@ -53,3 +53,47 @@ e.g. how intros open, how contributions are stated, how eval sections frame base
 
 Wrap the whole guide in a ```markdown ... ``` block. Output ONLY the guide.
 """
+
+
+# --- sentence-level templates (ZeroStylus 2nd granularity) ------------------
+# The paragraph exemplar bank carries structure/voice at the paragraph level; this prompt
+# extracts SENTENCE-level phrasing templates grouped by rhetorical function, so writers get
+# fine-grained "how this community phrases X" few-shot cues.
+
+sentence_template_extraction_prompt = """Role: Senior researcher and copy-editor.
+Task: From the following passages of target-community papers, extract SENTENCE-LEVEL phrasing
+templates grouped by rhetorical function. These are short, imitable sentence patterns a writer
+should reuse to match this community's voice.
+
+For EACH function below, give 1-3 templates. A template = a concise representative sentence
+lifted or lightly generalized from the text (keep it concrete and specific to THIS community,
+not generic academic filler). If the function is not observable, give an empty list.
+
+Functions:
+- "opening_hook": how abstracts/intros open (the framing of the problem space).
+- "problem_statement": how the gap/limitation of prior work is stated.
+- "contribution": how contributions are asserted ("we propose / our key idea").
+- "approach_overview": how the method is summarized in one sentence.
+- "comparison": how the work is contrasted with prior/baseline work.
+- "result_claim": how quantitative results are stated.
+- "transition": section/linking transition phrases the community favors.
+- "limitation_future": how limitations or future work are phrased.
+
+Return ONLY a JSON object (wrapped in ```json ... ```):
+{{
+  "opening_hook": ["...", "..."],
+  "problem_statement": ["..."],
+  "contribution": ["..."],
+  "approach_overview": ["..."],
+  "comparison": ["..."],
+  "result_claim": ["..."],
+  "transition": ["..."],
+  "limitation_future": ["..."]
+}}
+
+Passages:
+---
+{passages}
+---
+"""
+

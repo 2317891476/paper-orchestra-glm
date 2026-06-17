@@ -172,7 +172,7 @@ class SectionWritingAgent:
         except Exception as e:
             return f"Error reading input files: {str(e)}"
 
-        from methods.agents.style_agent import exemplars_block
+        from methods.agents.style_agent import exemplars_block, sentence_templates_block
 
         # Real per-section passages from the target community — few-shot style conditioning.
         _exemplars = exemplars_block(
@@ -180,11 +180,17 @@ class SectionWritingAgent:
             ["method", "evaluation", "conclusion", "introduction"],
             max_per_section=1,
         )
+        _sent_tmpl = sentence_templates_block(
+            self.style_profile,
+            ["approach_overview", "result_claim", "comparison", "transition", "limitation_future"],
+        )
 
         user_prompt = f"""
 Here are the input materials for the paper.
 
 {_exemplars}
+
+{_sent_tmpl}
 
 --- INPUT: outline.json (Structure & Citation Candidates) ---
 {outline_content}

@@ -553,7 +553,11 @@ class HybridLiteratureAgent:
             min_cite_paper_count=int(len(papers) * 0.9),
             cutoff_date=cutoff_date,
         )
-        from methods.agents.style_agent import style_summary, exemplars_block
+        from methods.agents.style_agent import (
+            style_summary,
+            exemplars_block,
+            sentence_templates_block,
+        )
 
         _summary = style_summary(self.style_profile)
         if _summary:
@@ -563,10 +567,16 @@ class HybridLiteratureAgent:
         _exemplars = exemplars_block(
             self.style_profile, ["introduction", "related_work"], max_per_section=1
         )
+        _sent_tmpl = sentence_templates_block(
+            self.style_profile,
+            ["opening_hook", "problem_statement", "contribution", "comparison", "transition"],
+        )
 
         user_prompt = "Generate the LaTeX for Introduction and Related Work sections.\n\n"
         if _exemplars:
             user_prompt += _exemplars + "\n\n"
+        if _sent_tmpl:
+            user_prompt += _sent_tmpl + "\n\n"
         user_prompt += "Context:\n" + json.dumps(context_payload)
         response_dict = call_llm_with_text_prompt(
             prompt=user_prompt,

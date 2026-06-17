@@ -33,7 +33,7 @@ import re
 import tempfile
 from typing import Dict, List, Optional
 
-from methods.prompts.style_agent import style_extraction_prompt
+from methods.prompts.style_agent import style_extraction_prompt, sentence_template_extraction_prompt
 from utils.llm_backend_utils import call_llm_with_images, call_llm_with_text_prompt
 from utils.pdf_utils import load_paper, pdf_to_grid_images
 
@@ -175,6 +175,35 @@ def exemplars_block(profile: Optional[dict], sections: List[str], max_per_sectio
     )
 
 
+def sentence_templates_block(
+    profile: Optional[dict], functions: Optional[List[str]] = None, max_per_function: int = 2
+) -> str:
+    """Format sentence-level phrasing templates (by rhetorical function) for injection.
+
+    ZeroStylus 2nd granularity: concrete sentence patterns the community reuses.
+    """
+    if not profile:
+        return ""
+    tmpl: Dict[str, List[str]] = profile.get("sentence_templates", {}) or {}
+    if not tmpl:
+        return ""
+    fns = functions or list(tmpl.keys())
+    lines = []
+    for fn in fns:
+        items = tmpl.get(fn) or []
+        if not items:
+            continue
+        for s in items[:max_per_function]:
+            lines.append(f"- [{fn}] {s}")
+    if not lines:
+        return ""
+    return (
+        "=== TARGET-CONFERENCE SENTENCE TEMPLATES (reuse these phrasings where natural) ===\n"
+        + "\n".join(lines)
+        + "\n=== END SENTENCE TEMPLATES ==="
+    )
+
+
 # --- input resolution -------------------------------------------------------
 
 
@@ -238,7 +267,15 @@ class StyleAgent:
         # --- LLM summary (voice-focused; structure already in the bank) ---
         summary = self._extract_summary(paper_paths, paper_texts, bank, structure)
 
-        profile = {"summary": summary, "bank": bank, "structure": structure}
+        # --- sentence-level templates (ZeroStylus 2nd granularity) ---
+        sentence_templates = self._extract_sentence_templates(bank)
+
+        profile = {
+            "summary": summary,
+            "bank": bank,
+            "structure": structure,
+            "sentence_templates": sentence_templates,
+        }
 
         # --- persist ---
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -301,6 +338,34 @@ class StyleAgent:
         raw = resp.get("raw_response") or ""
         return _strip_markdown_fence(raw)
 
+    def _extract_sentence_templates(self, bank: Dict[str, List[str]]) -> Dict[str, List[str]]:
+        """Extract sentence-level phrasing templates by rhetorical function (text-only LLM call)."""
+        # flatten bank passages into one blob (bounded)
+        passages = "\n\n".join(ex for exs in bank.values() for ex in exs)[:6000]
+        if not passages.strip():
+            return {}
+        prompt = sentence_template_extraction_prompt.format(passages=passages)
+        try:
+            resp = call_llm_with_text_prompt(
+                prompt=prompt,
+                model_name=self.model_name,
+                generation_configs={"temperature": 0.3},
+                return_json=True,
+                check_parsed_response_not_none=False,
+            )
+            parsed = resp.get("parsed_response") or {}
+        except Exception as e:
+            print(f"    [StyleAgent] sentence-template extraction failed: {e}")
+            return {}
+        # keep only well-formed function -> list[str]
+        out: Dict[str, List[str]] = {}
+        for k, v in (parsed or {}).items():
+            if isinstance(v, list):
+                cleaned = [str(x).strip() for x in v if str(x).strip()]
+                if cleaned:
+                    out[k] = cleaned
+        return out
+
     @staticmethod
     def _render_guide(profile: dict) -> str:
         """Human-readable style_guide.md = summary + observed structure + section index."""
@@ -322,8 +387,18 @@ class StyleAgent:
             if exs:
                 out.append(f"- `{sec}`: {len(exs)} passage(s)")
         out.append("")
+        st = profile.get("sentence_templates", {}) or {}
+        if st:
+            out.append("## Sentence-Level Phrasing Templates")
+            out.append("")
+            for fn, items in st.items():
+                if items:
+                    out.append(f"**{fn}**")
+                    for s in items:
+                        out.append(f"- {s}")
+                    out.append("")
         out.append(
             "> Concrete per-section passages live in `style_bank.json` and are injected as "
-            "few-shot exemplars into the writers at generation time."
+            "few-shot exemplars + sentence templates into the writers at generation time."
         )
         return "\n".join(out)
