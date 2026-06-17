@@ -91,6 +91,18 @@ def main():
         "(no-op if no style papers found).",
     )
     parser.add_argument(
+        "--stages",
+        default=None,
+        help="Comma-list of stages to run (resume-safe): outline,style,literature,section,"
+        "refinement. Default: all. Example: --stages literature,section",
+    )
+    parser.add_argument(
+        "--from_stage",
+        default=None,
+        help="Run from this stage through the end. Example: --from_stage section "
+        "(runs section,refinement). Overrides --stages.",
+    )
+    parser.add_argument(
         "--plotting_model_name",
         default="glm-5.2",
         help="LLM for the plotting agent.",
@@ -186,6 +198,8 @@ def main():
             local_references_dir=args.local_references_dir,
             style_references_dir=args.style_references_dir,
             use_style_learning=args.use_style_learning,
+            stages=args.stages,
+            from_stage=args.from_stage,
         )
     else:
         from methods.paper_writer import write_single_paper
@@ -205,6 +219,8 @@ def main():
             local_references_dir=args.local_references_dir,
             style_references_dir=args.style_references_dir,
             use_style_learning=args.use_style_learning,
+            stages=args.stages,
+            from_stage=args.from_stage,
         )
 
 

@@ -48,7 +48,30 @@ def write_single_paper(
     local_references_dir: str = None,
     style_references_dir: str = None,
     use_style_learning: bool = True,
+    stages: str = None,
+    from_stage: str = None,
 ):
+    # Per-stage mode is handled by the non-plotting runner (plotting is a full-pipeline
+    # feature tightly coupled to the parallel literature step and is not individually
+    # selectable). Delegate stage subsets there.
+    if stages or from_stage:
+        from methods.paper_writer import write_single_paper as _run
+
+        return _run(
+            base_dir=base_dir,
+            latex_template_dir=latex_template_dir,
+            idea_filename=idea_filename,
+            experimental_log_filename=experimental_log_filename,
+            writer_model_name=writer_model_name,
+            reflection_model_name=reflection_model_name,
+            research_cutoff=research_cutoff,
+            local_references_dir=local_references_dir,
+            style_references_dir=style_references_dir,
+            use_style_learning=use_style_learning,
+            stages=stages,
+            from_stage=from_stage,
+        )
+
     latex_writeup_dir = osp.join(base_dir, "latex_writeup")
     pdf_file = osp.join(base_dir, "final_paper.pdf")
 

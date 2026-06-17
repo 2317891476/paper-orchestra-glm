@@ -39,8 +39,12 @@ Optional: **PlottingAgent** (stage 2.5, parallel) generates figures from code wh
 
 ## Orchestrators
 
-- `methods/paper_writer.py::write_single_paper` — the 4-stage run (no plotting).
-- `methods/paper_writer_with_plotting.py::write_single_paper` — adds plotting.
+- `methods/paper_writer.py::write_single_paper` — the 4-stage run (no plotting). Now a
+  **per-stage runner**: pass `stages=` / `from_stage=` to run a resume-safe subset
+  (see [cli-and-frontend](cli-and-frontend.md)). Stages share a context built by `_build_ctx`;
+  each has a `_stage_*` function + a resume-safe `_prepare_for_stage` invariant.
+- `methods/paper_writer_with_plotting.py::write_single_paper` — adds plotting; delegates
+  stage subsets to the non-plotting runner.
 - `methods/paper_writer.py::run_batch_writeup` — parallel many papers.
 
 ## Key design principles

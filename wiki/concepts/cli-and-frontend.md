@@ -18,6 +18,39 @@ Key flags (defaults reflect this fork):
 | `--use_plotting` | `false` | enable PlottingAgent |
 | `--plotting_model_name` | `glm-5.2` | |
 | `--image_model_name` | gemini image | vision for plotting |
+| `--local_references_dir` | auto (`<raw>/references/`) | user PDF/.bib, always-citable ([local-references](local-references.md)) |
+| `--style_references_dir` | auto (`<raw>/style_references/`) | best-paper PDFs for style learning |
+| `--use_style_learning` | `true` | StyleAgent on/off (no-op if no papers) |
+| `--stages` | all | comma-list to run a subset, **resume-safe** |
+| `--from_stage` | (none) | run from this stage to the end (overrides `--stages`) |
+
+## Running individual stages (resume-safe)
+
+Stages: `outline → style → literature → section → refinement`. You can run a subset and
+resume from existing artifacts in `--output_dir`:
+
+```bash
+# just regenerate the outline
+python paper_writing_cli.py ... --stages outline
+
+# rerun section + refinement only (e.g. after a prompt tweak), reusing outline/literature/style
+python paper_writing_cli.py ... --from_stage section
+
+# rerun literature and everything after it
+python paper_writing_cli.py ... --from_stage literature
+```
+
+**Resume-safety guarantees** (in `methods/paper_writer.py`):
+- Stage mode never wipes `latex_writeup/`; only the `refinement` stage clears its own workdir.
+- Re-running `literature` first restores the RAW `template.tex` (prevents double-injection —
+  literature reads and overwrites `template.tex`).
+- Later stages assert their upstream artifacts exist (clear error, no silent crash).
+- `style` profile is reused: if `style_bank.json` exists in `--output_dir`, literature/section
+  load it even when the `style` stage isn't re-run.
+- Plotting path (`--use_plotting`) delegates stage subsets to the non-plotting runner (plotting
+  is a full-pipeline feature, not individually selectable).
+
+Full run (no `--stages`/`--from_stage`) keeps the original wipe + 3× retry behavior.
 
 ## Expected raw_materials layout
 

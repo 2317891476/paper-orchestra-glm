@@ -30,6 +30,8 @@ from utils.common_utils import (
     create_log_folder,
 )
 
+STAGES = ["outline", "style", "literature", "section", "refinement"]
+
 
 def write_single_paper(
     base_dir,
@@ -42,182 +44,259 @@ def write_single_paper(
     local_references_dir: str = None,
     style_references_dir: str = None,
     use_style_learning: bool = True,
+    stages: str = None,
+    from_stage: str = None,
 ):
-    latex_writeup_dir = osp.join(base_dir, "latex_writeup")
-    pdf_file = osp.join(base_dir, "final_paper.pdf")
+    """Run the paper pipeline, optionally a subset of stages (resume-safe).
 
-    if osp.exists(latex_writeup_dir):
-        shutil.rmtree(latex_writeup_dir)
-    if osp.exists(pdf_file):
-        os.remove(pdf_file)
+    stages:     comma-list, e.g. "literature,section"
+    from_stage: run from this stage through the end, e.g. "section" -> section,refinement
+    Neither:    full run (all stages; wipe + retry as before).
+    """
+    selected = _resolve_stages(stages, from_stage)
+    fresh = selected == STAGES
+    ctx = _build_ctx(base_dir, latex_template_dir, idea_filename, experimental_log_filename)
+    _setup(ctx, fresh=fresh)
 
-    materials_dir = osp.join(base_dir, "raw_materials")
+    # Style profile: run the style stage, else reuse style_bank.json if present, else None.
+    if "style" in selected:
+        style_profile = _stage_style(
+            ctx, writer_model_name, style_references_dir, use_style_learning
+        )
+    else:
+        style_profile = _load_style_profile(ctx)
 
-    old_figure_dir = osp.join(materials_dir, "figures")
-    new_figure_dir = osp.join(latex_writeup_dir, "figures")
-    if osp.exists(old_figure_dir):
-        shutil.copytree(old_figure_dir, new_figure_dir, dirs_exist_ok=True)
-    figures_dir = new_figure_dir
+    def _run_selected():
+        for stage in selected:
+            _prepare_for_stage(stage, ctx)
+            print(f"\n==== STAGE: {stage} ====")
+            if stage == "outline":
+                _stage_outline(ctx, writer_model_name, research_cutoff)
+            elif stage == "style":
+                pass  # produced above
+            elif stage == "literature":
+                _stage_literature(
+                    ctx, writer_model_name, research_cutoff, local_references_dir, style_profile
+                )
+            elif stage == "section":
+                _stage_section(ctx, writer_model_name, style_profile)
+            elif stage == "refinement":
+                _stage_refinement(ctx, reflection_model_name)
 
+    if not fresh:
+        _run_selected()
+        return True
+
+    # Full run keeps the original retry semantics.
     max_n_tries = 3
-    cur_try = 0
-    succeed = False
-
-    while (not succeed) and (cur_try < max_n_tries):
+    for cur_try in range(max_n_tries):
         try:
-            assert osp.exists(
-                materials_dir
-            ), f"Please make sure '{materials_dir}' exists!"
-
-            shutil.copytree(latex_template_dir, latex_writeup_dir, dirs_exist_ok=True)
-
-            guidelines_path = osp.join(latex_writeup_dir, "guidelines.md")
-            latex_template_path = osp.join(latex_writeup_dir, "template.tex")
-
-            idea_file_path = osp.join(materials_dir, idea_filename)
-            experimental_log_file_path = osp.join(
-                materials_dir, experimental_log_filename
-            )
-
-            assert osp.exists(
-                guidelines_path
-            ), f"No guidelines file detected at '{guidelines_path}'!"
-            assert osp.exists(
-                latex_template_path
-            ), f"No template file detected at '{latex_template_path}'!"
-            assert osp.exists(
-                idea_file_path
-            ), f"No idea file detected at '{idea_file_path}'!"
-            assert osp.exists(
-                experimental_log_file_path
-            ), f"No experimental log file detected at '{experimental_log_file_path}'!"
-
-            ###############################################################################################
-            # Step 1: Call outline agent
-            outline_agent = OutlineAgent(
-                model_name=writer_model_name, cutoff_date=research_cutoff
-            )
-            outline_file_path = osp.join(base_dir, "outline.json")
-            outline_agent.run(
-                idea_file=idea_file_path,
-                experimental_log_file=experimental_log_file_path,
-                latex_template_file=latex_template_path,
-                conference_guidelines_file=guidelines_path,
-                output_filepath=outline_file_path,
-            )
-
-            ###############################################################################################
-            # Step 1.5 (optional): StyleAgent — extract style profile (summary + exemplar bank)
-            style_profile = None
-            if use_style_learning:
-                style_papers = resolve_style_papers(style_references_dir, latex_template_dir)
-                if style_papers:
-                    style_guide_path = osp.join(base_dir, "style_guide.md")
-                    style_profile = StyleAgent(
-                        model_name=writer_model_name
-                    ).run(style_papers, style_guide_path)
-                else:
-                    print(" >> No style reference papers found — skipping style learning.")
-
-            ###############################################################################################
-            # Step 2: Call HybridLiteratureAgent
-            literature_agent_output_dir = osp.join(base_dir, "literature_agent_output")
-            literature_agent = HybridLiteratureAgent(
-                idea_path=idea_file_path,
-                experimental_log_path=experimental_log_file_path,
-                latex_template_path=latex_template_path,
-                conference_guidelines_path=guidelines_path,
-                output_dir=literature_agent_output_dir,
-                model_name=writer_model_name,
-                max_workers=3,
-                local_references_dir=local_references_dir,
-                style_profile=style_profile,
-            )
-            literature_agent.run(
-                outline_path=outline_file_path,
-                cutoff_date=research_cutoff,
-            )
-            shutil.copy(
-                osp.join(literature_agent_output_dir, "outline_v1.json"),
-                outline_file_path,
-            )
-            shutil.copy(
-                osp.join(literature_agent_output_dir, "updated_template.tex"),
-                osp.join(latex_writeup_dir, "template.tex"),
-            )
-            shutil.copy(
-                osp.join(literature_agent_output_dir, "references.bib"),
-                osp.join(latex_writeup_dir, "references.bib"),
-            )
-
-            ###############################################################################################
-            # Step 3. Call SectionWritingAgent
-            citation_map_path = osp.join(
-                literature_agent_output_dir, "citation_map.json"
-            )
-            section_writing_agent = SectionWritingAgent(
-                outline_path=outline_file_path,
-                template_path=osp.join(latex_writeup_dir, "template.tex"),
-                idea_path=idea_file_path,
-                experimental_log_path=experimental_log_file_path,
-                citation_map_path=citation_map_path,
-                figures_info_path=osp.join(figures_dir, "info.json"),
-                guidelines_path=guidelines_path,
-                model_name=writer_model_name,
-                style_profile=style_profile,
-            )
-            raw_draft_tex_path = osp.join(latex_writeup_dir, "raw_draft_paper.tex")
-            section_writing_agent.run(output_path=raw_draft_tex_path)
-
-            ###############################################################################################
-            # Step 4: Content Reflection
-            content_refinement_workdir = os.path.join(
-                base_dir, "content_refinement_workdir"
-            )
-            if os.path.exists(content_refinement_workdir):
-                shutil.rmtree(content_refinement_workdir)
-            os.makedirs(content_refinement_workdir, exist_ok=True)
-
-            shutil.copytree(
-                latex_writeup_dir,
-                content_refinement_workdir,
-                dirs_exist_ok=True,
-            )
-
-            content_refinement_agent = ContentRefinementAgent(
-                experimental_log_path=experimental_log_file_path,
-                citation_map_path=citation_map_path,
-                guidelines_path=guidelines_path,
-                model_name=reflection_model_name,
-                max_reflections=3,
-                work_dir=content_refinement_workdir,
-            )
-            content_refinment_agent_output_pdf_path = content_refinement_agent.run(
-                texfile_path=raw_draft_tex_path
-            )
-            assert osp.exists(
-                content_refinment_agent_output_pdf_path
-            ), f"Content Refinement Agent failed to produce final PDF at {content_refinment_agent_output_pdf_path}!"
-
-            final_pdf_path = osp.join(base_dir, "final_paper.pdf")
-            print(
-                f" >> Copying final PDF from  {content_refinment_agent_output_pdf_path} to {final_pdf_path}...\n"
-            )
-            shutil.copy(content_refinment_agent_output_pdf_path, final_pdf_path)
-            print(" >> Final PDF saved to:\n", final_pdf_path)
-
-            succeed = True
+            _run_selected()
             return True
-
         except Exception:
             print(f"[Try {cur_try+1}/{max_n_tries}] EXCEPTION in perform_writeup:")
             print(traceback.format_exc())
-            cur_try += 1
-            if cur_try < max_n_tries:
+            if cur_try + 1 < max_n_tries:
                 print("Try again now...")
-
     print(f"Writeup failed after {max_n_tries}! Stop here.")
     return False
+
+
+# --- stage runner internals -------------------------------------------------
+
+
+def _resolve_stages(stages, from_stage):
+    if from_stage:
+        if from_stage not in STAGES:
+            raise ValueError(f"--from_stage must be one of {STAGES}, got '{from_stage}'")
+        return STAGES[STAGES.index(from_stage):]
+    if stages:
+        parts = [s.strip() for s in stages.split(",") if s.strip()]
+        bad = [p for p in parts if p not in STAGES]
+        if bad:
+            raise ValueError(f"Unknown stage(s) {bad}; valid: {STAGES}")
+        return [s for s in STAGES if s in parts]  # canonical order, deduped
+    return list(STAGES)
+
+
+def _build_ctx(base_dir, latex_template_dir, idea_filename, experimental_log_filename):
+    materials_dir = osp.join(base_dir, "raw_materials")
+    latex_writeup_dir = osp.join(base_dir, "latex_writeup")
+    return {
+        "base_dir": base_dir,
+        "latex_template_dir": latex_template_dir,
+        "materials_dir": materials_dir,
+        "latex_writeup_dir": latex_writeup_dir,
+        "literature_agent_output_dir": osp.join(base_dir, "literature_agent_output"),
+        "content_refinement_workdir": osp.join(base_dir, "content_refinement_workdir"),
+        "outline_path": osp.join(base_dir, "outline.json"),
+        "style_guide_path": osp.join(base_dir, "style_guide.md"),
+        "style_bank_path": osp.join(base_dir, "style_bank.json"),
+        "final_pdf_path": osp.join(base_dir, "final_paper.pdf"),
+        "guidelines_path": osp.join(latex_writeup_dir, "guidelines.md"),
+        "guidelines_src_path": osp.join(latex_template_dir, "guidelines.md"),
+        "template_path": osp.join(latex_writeup_dir, "template.tex"),
+        "raw_template_path": osp.join(latex_template_dir, "template.tex"),
+        "references_bib_path": osp.join(latex_writeup_dir, "references.bib"),
+        "raw_draft_path": osp.join(latex_writeup_dir, "raw_draft_paper.tex"),
+        "figures_dir": osp.join(latex_writeup_dir, "figures"),
+        "idea_path": osp.join(materials_dir, idea_filename),
+        "log_path": osp.join(materials_dir, experimental_log_filename),
+        "citation_map_path": osp.join(base_dir, "literature_agent_output", "citation_map.json"),
+    }
+
+
+def _setup(ctx, fresh: bool):
+    os.makedirs(ctx["base_dir"], exist_ok=True)
+    if fresh:
+        if osp.exists(ctx["latex_writeup_dir"]):
+            shutil.rmtree(ctx["latex_writeup_dir"])
+        if osp.exists(ctx["final_pdf_path"]):
+            os.remove(ctx["final_pdf_path"])
+    os.makedirs(ctx["latex_writeup_dir"], exist_ok=True)
+
+    # figures: copy once if missing
+    old_figure_dir = osp.join(ctx["materials_dir"], "figures")
+    new_figure_dir = ctx["figures_dir"]
+    if osp.exists(old_figure_dir) and not osp.exists(new_figure_dir):
+        shutil.copytree(old_figure_dir, new_figure_dir, dirs_exist_ok=True)
+
+    if fresh:
+        shutil.copytree(ctx["latex_template_dir"], ctx["latex_writeup_dir"], dirs_exist_ok=True)
+
+
+def _load_style_profile(ctx):
+    if osp.exists(ctx["style_bank_path"]):
+        try:
+            with open(ctx["style_bank_path"], "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f" >> Could not load existing style profile: {e}")
+    return None
+
+
+def _prepare_for_stage(stage, ctx):
+    """Assert upstream artifacts exist + restore stage invariants (resume-safe)."""
+    if stage == "outline":
+        assert osp.exists(ctx["materials_dir"]), (
+            f"Please make sure '{ctx['materials_dir']}' exists!"
+        )
+        assert osp.exists(ctx["idea_path"]), f"No idea file detected at '{ctx['idea_path']}'!"
+        assert osp.exists(ctx["log_path"]), (
+            f"No experimental log detected at '{ctx['log_path']}'!"
+        )
+
+    elif stage == "style":
+        pass  # style papers resolved inside the stage
+
+    elif stage == "literature":
+        assert osp.exists(ctx["outline_path"]), (
+            f"outline.json missing at '{ctx['outline_path']}' — run the 'outline' stage first."
+        )
+        os.makedirs(ctx["latex_writeup_dir"], exist_ok=True)
+        # restore the RAW template so re-running literature does not double-inject
+        if osp.exists(ctx["raw_template_path"]):
+            shutil.copy(ctx["raw_template_path"], ctx["template_path"])
+        assert osp.exists(ctx["guidelines_path"]) or osp.exists(ctx["guidelines_src_path"]), (
+            "No guidelines file detected in template dir."
+        )
+
+    elif stage == "section":
+        needs = [
+            (ctx["citation_map_path"], "citation_map.json (run 'literature' first)"),
+            (ctx["template_path"], "template.tex (run 'literature' first)"),
+            (ctx["references_bib_path"], "references.bib (run 'literature' first)"),
+            (ctx["outline_path"], "outline.json (run 'outline' first)"),
+        ]
+        for path, label in needs:
+            assert osp.exists(path), f"Section stage needs {label}: '{path}'"
+
+    elif stage == "refinement":
+        assert osp.exists(ctx["raw_draft_path"]), (
+            f"raw_draft_paper.tex missing at '{ctx['raw_draft_path']}' — run 'section' first."
+        )
+
+
+def _guidelines(ctx):
+    return ctx["guidelines_path"] if osp.exists(ctx["guidelines_path"]) else ctx["guidelines_src_path"]
+
+
+def _stage_outline(ctx, writer_model_name, research_cutoff):
+    outline_agent = OutlineAgent(model_name=writer_model_name, cutoff_date=research_cutoff)
+    outline_agent.run(
+        idea_file=ctx["idea_path"],
+        experimental_log_file=ctx["log_path"],
+        latex_template_file=ctx["raw_template_path"],
+        conference_guidelines_file=_guidelines(ctx),
+        output_filepath=ctx["outline_path"],
+    )
+
+
+def _stage_style(ctx, writer_model_name, style_references_dir, use_style_learning):
+    if not use_style_learning:
+        return None
+    style_papers = resolve_style_papers(style_references_dir, ctx["latex_template_dir"])
+    if not style_papers:
+        print(" >> No style reference papers found — skipping style learning.")
+        return None
+    return StyleAgent(model_name=writer_model_name).run(style_papers, ctx["style_guide_path"])
+
+
+def _stage_literature(ctx, writer_model_name, research_cutoff, local_references_dir, style_profile):
+    literature_agent = HybridLiteratureAgent(
+        idea_path=ctx["idea_path"],
+        experimental_log_path=ctx["log_path"],
+        latex_template_path=ctx["template_path"],
+        conference_guidelines_path=_guidelines(ctx),
+        output_dir=ctx["literature_agent_output_dir"],
+        model_name=writer_model_name,
+        max_workers=3,
+        local_references_dir=local_references_dir,
+        style_profile=style_profile,
+    )
+    literature_agent.run(outline_path=ctx["outline_path"], cutoff_date=research_cutoff)
+    out = ctx["literature_agent_output_dir"]
+    shutil.copy(osp.join(out, "outline_v1.json"), ctx["outline_path"])
+    shutil.copy(osp.join(out, "updated_template.tex"), ctx["template_path"])
+    shutil.copy(osp.join(out, "references.bib"), ctx["references_bib_path"])
+
+
+def _stage_section(ctx, writer_model_name, style_profile):
+    section_writing_agent = SectionWritingAgent(
+        outline_path=ctx["outline_path"],
+        template_path=ctx["template_path"],
+        idea_path=ctx["idea_path"],
+        experimental_log_path=ctx["log_path"],
+        citation_map_path=ctx["citation_map_path"],
+        figures_info_path=osp.join(ctx["figures_dir"], "info.json"),
+        guidelines_path=_guidelines(ctx),
+        model_name=writer_model_name,
+        style_profile=style_profile,
+    )
+    section_writing_agent.run(output_path=ctx["raw_draft_path"])
+
+
+def _stage_refinement(ctx, reflection_model_name):
+    workdir = ctx["content_refinement_workdir"]
+    if osp.exists(workdir):
+        shutil.rmtree(workdir)
+    os.makedirs(workdir, exist_ok=True)
+    shutil.copytree(ctx["latex_writeup_dir"], workdir, dirs_exist_ok=True)
+
+    agent = ContentRefinementAgent(
+        experimental_log_path=ctx["log_path"],
+        citation_map_path=ctx["citation_map_path"],
+        guidelines_path=_guidelines(ctx),
+        model_name=reflection_model_name,
+        max_reflections=3,
+        work_dir=workdir,
+    )
+    out_pdf = agent.run(texfile_path=ctx["raw_draft_path"])
+    assert osp.exists(out_pdf), (
+        f"Content Refinement Agent failed to produce PDF at {out_pdf}!"
+    )
+    shutil.copy(out_pdf, ctx["final_pdf_path"])
+    print(f" >> Final PDF saved to:\n {ctx['final_pdf_path']}")
 
 
 def process_paper_task(
