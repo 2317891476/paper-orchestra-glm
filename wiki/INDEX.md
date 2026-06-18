@@ -63,6 +63,8 @@ python paper_writing_cli.py \
 
 ## Timeline (landed milestones only)
 
+- **2026-06** — Added `templates/micro2026/` (ACM `acmart` MICRO template) + `my_paper/` example input folder.
+- **2026-06** — Added per-stage runner (`--stages` / `--from_stage`, resume-safe) to run/iterate individual pipeline stages.
 - **2026-06** — Added **local references** (PDF + .bib, always-citable, `is_local` flag) and **StyleAgent** (Step 1.5, text+visual style guide from best papers); both optional, CLI-flagged.
 - **2026-06** — Fork adapted to GLM-5.2 (OpenAI-compatible backend, `LLM_BACKEND` routing, lazy clients).
 - **2026-06** — Added `templates/hpca2027/` with `venues.md` conference-specific literature targeting.

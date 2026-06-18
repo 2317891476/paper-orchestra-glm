@@ -1,0 +1,81 @@
+%% MICRO 2026 submission skeleton (acmart sigconf).
+%% Adapted from the official micro59-latex-template for PaperOrchestra.
+\documentclass[sigconf, screen, review]{acmart}
+
+%% Bibliography logo helper (kept from the official template).
+\AtBeginDocument{%
+  \providecommand\BibTeX{{Bib\TeX}}}
+
+%% Rights / conference metadata (SAMPLE values — replace on camera-ready).
+\setcopyright{none}
+\copyrightyear{2026}
+\acmYear{2026}
+\acmDOI{XXXXXXX.XXXXXXX}
+\acmConference[MICRO 2026]{The 59th IEEE/ACM International Symposium on Microarchitecture}{October 31--November 04, 2026}{Athens, Greece}
+\acmISBN{978-X-XXXX-XXXX-X/XX/XX}
+
+\settopmatter{printfolios=true}
+\settopmatter{printacmref=false}
+
+%% Extra packages the Section agent relies on (tables, cross-refs).
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[capitalize]{cleveref}
+
+\begin{document}
+
+%%%%%%%%% TITLE + BANNER %%%%%%%%%
+\title{My Title}
+\subtitle{\normalsize{MICRO 2026 Submission
+    \textbf{\#12345678} -- Confidential Draft -- Do NOT Distribute!!}}
+
+%% NOTE: in acmart, abstract + keywords come BEFORE \maketitle.
+\begin{abstract}
+%%%%%%%%% ABSTRACT %%%%%%%%%
+Abstract here.
+%%%%%%%%% ABSTRACT %%%%%%%%%
+\end{abstract}
+
+\keywords{hardware verification, microarchitecture}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+Introduction here.
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+
+\section{Related Work}
+\label{sec:related_work}
+%%%%%%%%% RELATED WORK %%%%%%%%%
+Related work here.
+%%%%%%%%% RELATED WORK %%%%%%%%%
+
+\section{Methodology}
+\label{sec:method}
+%%%%%%%%% METHOD %%%%%%%%%
+Methodology here.
+%%%%%%%%% METHOD %%%%%%%%%
+
+\section{Experiments}
+\label{sec:experiments}
+%%%%%%%%% EXPERIMENTS %%%%%%%%%
+Experimental setup, results, and analysis here.
+%%%%%%%%% EXPERIMENTS %%%%%%%%%
+
+\section{Conclusion}
+\label{sec:conclusion}
+%%%%%%%%% CONCLUSION %%%%%%%%%
+Conclusion here.
+%%%%%%%%% CONCLUSION %%%%%%%%%
+
+%% MICRO is double-blind: do NOT include acknowledgments in the submission.
+% \begin{acks}
+% \end{acks}
+
+%%%%%%%%% -- BIB STYLE AND FILE -- %%%%%%%%%%
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}

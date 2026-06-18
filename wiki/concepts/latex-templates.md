@@ -14,8 +14,12 @@
 
 ## Active templates
 
-- `templates/hpca2027/` — IEEEtran, HPCA header via `hpca-template.tex`. Preamble loads
+- `templates/hpca2027/` — **IEEEtran**; HPCA header via `hpca-template.tex`. Preamble loads
   `booktabs`, `multirow`, `cleveref` (added in this fork so tables compile).
+- `templates/micro2026/` — **ACM `acmart`** (`sigconf`); MICRO 2026. Carries `acmart.cls` +
+  `ACM-Reference-Format.bst`. Key difference: **abstract + `\keywords` go BEFORE `\maketitle`**,
+  the submission banner is in `\subtitle{}`, double-blind (no `\begin{acks}`, blank authors),
+  `\bibliographystyle{ACM-Reference-Format}`. No appendix allowed.
 - `templates/cvpr2025/` — CVPR (original).
 - `templates/iclr2025/` — ICLR (original).
 
@@ -35,6 +39,9 @@ discovery toward the target community. Edit to retarget. See
 ## Notes / gotchas
 
 - HPCA's `\input{hpca-template}` pulls in `\begin{document}\maketitle`; abstract comes after.
+- MICRO (acmart): abstract + `\keywords` come **before** `\maketitle`; banner in `\subtitle{}`.
+- The section agent's preamble-safety-net splits on `\begin{document}`, which exists in BOTH
+  IEEEtran and acmart skeletons — so it works for every current template.
 - Author placeholder (per guidelines): "Ambitious AI Researcher, AI Research Institute…"
 
 ## TODO / flesh out
