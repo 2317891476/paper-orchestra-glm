@@ -63,6 +63,7 @@ python paper_writing_cli.py \
 
 ## Timeline (landed milestones only)
 
+- **2026-06** — Added `templates/{isca2026,asplos2026,dac2026}/` (ISCA IEEEtran + ASPLOS/DAC acmart). Architecture "big-three" + EDA now all covered.
 - **2026-06** — Added `templates/micro2026/` (ACM `acmart` MICRO template) + `my_paper/` example input folder.
 - **2026-06** — Added per-stage runner (`--stages` / `--from_stage`, resume-safe) to run/iterate individual pipeline stages.
 - **2026-06** — Added **local references** (PDF + .bib, always-citable, `is_local` flag) and **StyleAgent** (Step 1.5, text+visual style guide from best papers); both optional, CLI-flagged.

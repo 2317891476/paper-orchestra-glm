@@ -16,10 +16,15 @@
 
 - `templates/hpca2027/` — **IEEEtran**; HPCA header via `hpca-template.tex`. Preamble loads
   `booktabs`, `multirow`, `cleveref` (added in this fork so tables compile).
+- `templates/isca2026/` — **IEEEtran** (conference); ISCA 2026. Simpler than HPCA: submission
+  banner is inline in `\author{}`, no `\input`. `\bibliographystyle{IEEEtranS}`.
 - `templates/micro2026/` — **ACM `acmart`** (`sigconf`); MICRO 2026. Carries `acmart.cls` +
   `ACM-Reference-Format.bst`. Key difference: **abstract + `\keywords` go BEFORE `\maketitle`**,
   the submission banner is in `\subtitle{}`, double-blind (no `\begin{acks}`, blank authors),
   `\bibliographystyle{ACM-Reference-Format}`. No appendix allowed.
+- `templates/asplos2026/` — **ACM `acmart`** (`sigplan, 10pt, review, anonymous`); ASPLOS 2026.
+  Same acmart gotchas as MICRO; SIGPLAN format.
+- `templates/dac2026/` — **ACM `acmart`** (`sigconf, anonymous, review`); DAC 2026. EDA-focused.
 - `templates/cvpr2025/` — CVPR (original).
 - `templates/iclr2025/` — ICLR (original).
 
