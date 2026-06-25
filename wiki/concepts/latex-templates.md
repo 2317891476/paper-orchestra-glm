@@ -25,6 +25,9 @@
 - `templates/asplos2026/` — **ACM `acmart`** (`sigplan, 10pt, review, anonymous`); ASPLOS 2026.
   Same acmart gotchas as MICRO; SIGPLAN format.
 - `templates/dac2026/` — **ACM `acmart`** (`sigconf, anonymous, review`); DAC 2026. EDA-focused.
+- `templates/software_se/` — **中文综述** (`ctexart`, XeLaTeX, A4 single-column); "前瞻科技" journal
+  style. Survey structure (引言 / 国内外研究进展 / 关键技术挑战 / 发展趋势与建议 / 结束语);
+  bibtex (`\bibliography{references}`); Chinese head macros. `compile_latex` auto-uses xelatex.
 - `templates/cvpr2025/` — CVPR (original).
 - `templates/iclr2025/` — ICLR (original).
 

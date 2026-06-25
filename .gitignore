@@ -8,6 +8,9 @@ paper_output*
 
 # Personal research materials (input data, not part of the tool)
 raw_material/
+se_survey/
+g10_paper/
+software/
 
 # Original template tarball + Windows metadata
 *.tar.gz

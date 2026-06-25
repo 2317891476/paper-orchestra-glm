@@ -177,12 +177,28 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
     for var in ["TEXINPUTS", "TEXMFHOME", "TEXMF", "TEXMFVAR", "TEXMFCONFIG"]:
         env.pop(var, None)
 
+    # Engine selection: XeLaTeX for Chinese (ctex*/xeCJK) templates, else pdfLaTeX.
+    engine = "pdflatex"
+    try:
+        with open(os.path.join(cwd, f"{texfile_name}.tex"), "r", encoding="utf-8", errors="ignore") as _f:
+            _head = _f.read(2048).lower()
+        if (
+            "% !tex program = xelatex" in _head
+            or ("\\documentclass" in _head and "ctex" in _head)
+            or "\\usepackage{xecjk}" in _head
+        ):
+            engine = "xelatex"
+    except Exception:
+        pass
+
     commands = [
-        ["pdflatex", "-interaction=nonstopmode", f"{texfile_name}.tex"],
+        [engine, "-interaction=nonstopmode", f"{texfile_name}.tex"],
         ["bibtex", texfile_name],
-        ["pdflatex", "-interaction=nonstopmode", f"{texfile_name}.tex"],
-        ["pdflatex", "-interaction=nonstopmode", f"{texfile_name}.tex"],
+        [engine, "-interaction=nonstopmode", f"{texfile_name}.tex"],
+        [engine, "-interaction=nonstopmode", f"{texfile_name}.tex"],
     ]
+    # XeLaTeX's first run is slow (font-cache setup); give it more room.
+    run_timeout = max(timeout, 120) if engine == "xelatex" else timeout
 
     execution_logs = []
 
@@ -194,7 +210,7 @@ def compile_latex(cwd, pdf_file, texfile_name="template", timeout=30):
                 cwd=cwd,
                 capture_output=True,  # Captures stdout/stderr silently
                 text=True,
-                timeout=timeout,
+                timeout=run_timeout,
                 env=env,
             )
 

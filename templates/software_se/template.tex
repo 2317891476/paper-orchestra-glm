@@ -1,0 +1,96 @@
+% !TeX program = xelatex
+% =============================================================
+% 中文综述与述评类论文 LaTeX 模板（前瞻科技期刊风格）
+% 由 software/chinese_latex_template.tex 改造，适配 PaperOrchestra 流水线：
+%   - 综述结构（研究进展/技术挑战/发展趋势/结束语）
+%   - 参考文献改为 bibtex（\bibliography{references}），便于自动检索注入
+% 编译引擎：XeLaTeX（compile_latex 会按本文件头自动选择 xelatex）
+% =============================================================
+
+\documentclass[UTF8,a4paper,zihao=-4]{ctexart}
+
+\usepackage[top=25.4mm,bottom=25.4mm,left=17mm,right=13mm]{geometry}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+\captionsetup[figure]{name=图,labelsep=quad,font=small}
+\captionsetup[table]{name=表,labelsep=quad,font=small}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\linespread{1.15}
+
+\ctexset{
+  section = {format={\zihao{-4}\heiti\bfseries}, name={}, number={\arabic{section}}, aftername={\quad}, beforeskip=1.0ex, afterskip=0.6ex},
+  subsection = {format={\zihao{-4}\heiti\bfseries}, name={}, number={\arabic{section}.\arabic{subsection}}, aftername={\quad}, beforeskip=0.8ex, afterskip=0.4ex}
+}
+\renewcommand{\refname}{参考文献}
+
+% ======== 论文基本信息（由写作 Agent 填充）========
+\newcommand{\papertitle}{大语言模型驱动的软件工程发展现状与展望}
+\newcommand{\paperauthors}{作者姓名}
+\newcommand{\affiliationone}{\textsuperscript{1}. 单位}
+\newcommand{\affiliationtwo}{\textsuperscript{2}. 单位}
+\newcommand{\paperabstract}{摘要内容。}
+\newcommand{\paperkeywords}{大语言模型；代码生成；软件工程；智能开发智能体}
+
+\newcommand{\makecnarticlehead}{%
+  \begin{flushleft}
+    {\fontsize{14pt}{18pt}\selectfont\heiti\bfseries \papertitle\par}
+    \vspace{0.8em}
+    {\fontsize{11pt}{15pt}\selectfont \paperauthors\par}
+    \vspace{0.4em}
+    {\fontsize{10pt}{14pt}\selectfont \affiliationone\par}
+    {\fontsize{10pt}{14pt}\selectfont \affiliationtwo\par}
+  \end{flushleft}
+  \vspace{1.0em}
+}
+
+\begin{document}
+
+\makecnarticlehead
+
+\noindent\textbf{摘要}\quad \paperabstract
+
+\vspace{0.4em}
+\noindent\textbf{关键词}\quad \paperkeywords
+
+\vspace{1.0em}
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+引言内容（基本概念与研究意义）。
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+
+\section{国内外研究进展}
+\label{sec:progress}
+%%%%%%%%% PROGRESS %%%%%%%%%
+近五年代表性进展（新观点/新理论/新方法/新技术/新成果）。
+%%%%%%%%% PROGRESS %%%%%%%%%
+
+\section{关键技术挑战}
+\label{sec:challenges}
+%%%%%%%%% CHALLENGES %%%%%%%%%
+当前面临的主要技术挑战。
+%%%%%%%%% CHALLENGES %%%%%%%%%
+
+\section{发展趋势与建议}
+\label{sec:trends}
+%%%%%%%%% TRENDS %%%%%%%%%
+未来五年发展趋势与发展建议。
+%%%%%%%%% TRENDS %%%%%%%%%
+
+\section{结束语}
+\label{sec:conclusion}
+%%%%%%%%% CONCLUSION %%%%%%%%%
+结束语。
+%%%%%%%%% CONCLUSION %%%%%%%%%
+
+%%%%%%%%% -- BIB STYLE AND FILE (bibtex) -- %%%%%%%%%%
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
