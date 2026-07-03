@@ -11,6 +11,8 @@ raw_material/
 se_survey/
 g10_paper/
 software/
+SoC-HiRCA*.md
+LLM-StaticBugLens*.md
 
 # Original template tarball + Windows metadata
 *.tar.gz

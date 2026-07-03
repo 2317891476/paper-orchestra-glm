@@ -25,7 +25,9 @@ the Introduction and Related Work sections.
 
 ## Phases
 
-1. **Discovery** — `_discover_candidates` (per search task, parallel)
+1. **Discovery** — `_discover_candidates` (per search task, parallel). Now uses **multi-source
+   search** (`search_papers`: DeepXiv+S2+arXiv) merged with LLM-knowledge candidates — see
+   [paper-search](paper-search.md). Finds real papers even when S2 is rate-limited.
 2. **Retrieval** — `s2_title_search` enrichment, rate-limited (~1 req/s)
 3. **1.5 Local references** — `_load_and_register_local_references` ingests user-provided
    PDF/.bib into the registry (bypasses S2 + cutoff). See [local-references](local-references.md).

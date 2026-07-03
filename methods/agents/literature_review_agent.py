@@ -529,9 +529,38 @@ class HybridLiteratureAgent:
             generation_configs={"temperature": 0.1 if task.get("search_type") == "targeted" else 0.4},
         )
 
+        llm_cands = []
         if response_dict["parsed_response"]:
-            return response_dict["parsed_response"].get("candidates", [])
-        return []
+            llm_cands = response_dict["parsed_response"].get("candidates", [])
+
+        # Multi-source real search (DeepXiv + S2 + arXiv) — finds real papers even when the
+        # LLM's knowledge is thin or S2-alone is rate-limited. Merged + deduped with LLM cands.
+        if task.get("search_type") != "targeted":
+            try:
+                from utils.paper_search import search_papers
+                real = search_papers(task["focus"], limit=8, cutoff_date=cutoff_date)
+                for r in real:
+                    llm_cands.append({
+                        "title": r["title"],
+                        "year": r.get("year"),
+                        "reason": f"multi-source search ({r.get('source')})",
+                    })
+                # dedup by normalized title, prefer entries with a year
+                seen, merged = set(), []
+                for c in sorted(llm_cands, key=lambda x: bool(x.get("year")), reverse=True):
+                    t = self._normalize_title(c.get("title", ""))
+                    if t and t not in seen:
+                        seen.add(t)
+                        merged.append(c)
+                llm_cands = merged[:15]
+                if real:
+                    self._safe_print(
+                        f"      -> 🔎 multi-source search added {len(real)} real papers for '{task['focus'][:40]}'"
+                    )
+            except Exception as e:
+                print(f"      [search] multi-source search skipped: {e}")
+
+        return llm_cands
 
     def _synthesize_content(self, outline, papers: List[PaperData], cutoff_date: str):
         paper_keys = [p.citation_key for p in papers]

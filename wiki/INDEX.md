@@ -46,6 +46,7 @@ python paper_writing_cli.py \
 
 **Infrastructure**
 - [llm-backend-routing](concepts/llm-backend-routing.md) — Gemini vs OpenAI-compatible (GLM/DeepSeek/Ollama)
+- [paper-search](concepts/paper-search.md) — multi-source search (DeepXiv + S2 + arXiv)
 - [latex-templates](concepts/latex-templates.md) — template.tex / guidelines.md / venues.md / references.bib
 - [latex-compilation](concepts/latex-compilation.md) — compile_latex + common errors (preamble loss, missing packages)
 
@@ -55,6 +56,7 @@ python paper_writing_cli.py \
 
 **Generated works**
 - [works](works.md) — catalog of papers produced with this fork (paths, venues, stats)
+- [enrich-paper](concepts/enrich-paper.md) — add citations to an existing paper (reusable enrichment)
 
 ## Topology
 
