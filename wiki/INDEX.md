@@ -53,6 +53,9 @@ python paper_writing_cli.py \
 - [autoraters](concepts/autoraters.md) — agent_review, citation_f1, sxs quality
 - [cli-and-frontend](concepts/cli-and-frontend.md) — CLI flags + Streamlit demo + batch mode
 
+**Generated works**
+- [works](works.md) — catalog of papers produced with this fork (paths, venues, stats)
+
 ## Topology
 
 - [pipeline.canvas](pipeline.canvas) — Obsidian Canvas of the 5-stage flow
