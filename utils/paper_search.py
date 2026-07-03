@@ -195,11 +195,109 @@ def search_s2_keyword(query: str, limit: int = 8) -> List[Dict]:
     return recs
 
 
+# --- publication resolution (arXiv preprint -> formal venue) ---
+
+
+def _is_real_venue(venue: str) -> bool:
+    """True if the venue is a real conference/journal, not just arXiv/CoRR."""
+    if not venue:
+        return False
+    v = venue.lower().strip()
+    return v not in ("", "arxiv", "arxiv.org", "corr")
+
+
+def _dblp_lookup(title: str) -> Optional[Dict]:
+    """Look up a paper on DBLP by title. Returns {venue, year, doi} or None."""
+    try:
+        import time
+        r = requests.get("https://dblp.uni-trier.de/search/publ/api",
+                         params={"q": title[:120], "format": "json", "h": 1}, timeout=15)
+        if r.status_code != 200:
+            return None
+        hits = (r.json().get("result", {}).get("hits", {}).get("hit", []))
+        if not hits:
+            return None
+        info = hits[0].get("info", {})
+        venue = info.get("venue", "")
+        if not _is_real_venue(venue):
+            return None
+        return {"venue": venue, "year": int(info.get("year", 0)) or None,
+                "doi": info.get("doi")}
+    except Exception:
+        return None
+
+
+def _s2_lookup_by_arxiv(arxiv_id: str) -> Optional[Dict]:
+    """Look up a paper on Semantic Scholar by arXiv id. Returns {venue, year, doi} or None."""
+    headers = {"X-API-KEY": S2_API_KEY} if S2_API_KEY else {}
+    try:
+        r = requests.get(f"https://api.semanticscholar.org/graph/v1/paper/arXiv:{arxiv_id}",
+                         headers=headers, timeout=15,
+                         params={"fields": "venue,publicationVenue,year,externalIds"})
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        pub_venue = (data.get("publicationVenue") or {}).get("name", "")
+        venue = pub_venue or data.get("venue", "")
+        if not _is_real_venue(venue):
+            return None
+        ext = data.get("externalIds") or {}
+        return {"venue": venue, "year": data.get("year"),
+                "doi": ext.get("DOI")}
+    except Exception:
+        return None
+
+
+def resolve_publication(rec: Dict, keep_preprints: bool = False) -> Optional[Dict]:
+    """Try to find the formal published version of a paper found as arXiv preprint.
+
+    - If the record already has a real venue → return as-is.
+    - If arXiv-only: query DBLP (primary) then S2 (fallback) for a formal venue.
+    - If a formal venue is found → update record (venue/year/doi).
+    - If no formal venue found → return None (drop) unless keep_preprints=True.
+    """
+    venue = (rec.get("venue") or "").strip()
+    if _is_real_venue(venue):
+        return rec  # already published
+
+    # try DBLP by title (primary — dedicated to formally published papers)
+    dblp = _dblp_lookup(rec["title"])
+    if dblp:
+        rec["venue"] = dblp["venue"]
+        if dblp.get("year"):
+            rec["year"] = dblp["year"]
+        if dblp.get("doi"):
+            rec["doi"] = dblp["doi"]
+        rec["resolved"] = "dblp"
+        return rec
+
+    # try S2 by arxiv_id (fallback)
+    ax = rec.get("arxiv_id")
+    if ax:
+        import time
+        time.sleep(0.5)  # respect S2 rate limits
+        s2 = _s2_lookup_by_arxiv(ax)
+        if s2:
+            rec["venue"] = s2["venue"]
+            if s2.get("year"):
+                rec["year"] = s2["year"]
+            if s2.get("doi"):
+                rec["doi"] = s2["doi"]
+            rec["resolved"] = "s2"
+            return rec
+
+    # preprint-only
+    if keep_preprints:
+        rec["resolved"] = "preprint-only"
+        return rec
+    return None
+
+
 # --- unified entry point ---
 
 
 def search_papers(query: str, limit: int = 8, cutoff_date: Optional[str] = None,
-                  venues: Optional[List[str]] = None) -> List[Dict]:
+                  venues: Optional[List[str]] = None, keep_preprints: bool = False) -> List[Dict]:
     """Search all backends, normalize, dedup, cutoff-filter. Each backend degrades independently."""
     per = max(limit, 6)
     raw: List[Dict] = []
@@ -231,7 +329,16 @@ def search_papers(query: str, limit: int = 8, cutoff_date: Optional[str] = None,
             dedup[key] = r
     out = list(dedup.values())
     out.sort(key=lambda r: (r["citation_count"], len(r["abstract"])), reverse=True)
-    return out[:limit]
+    out = out[:limit * 2]  # over-fetch before resolution (some will be dropped as preprint-only)
+
+    # resolve arXiv preprints to formal publications; drop preprint-only papers
+    resolved = []
+    for r in out:
+        pub = resolve_publication(r, keep_preprints=keep_preprints)
+        if pub:
+            resolved.append(pub)
+    resolved.sort(key=lambda r: (r["citation_count"], len(r["abstract"])), reverse=True)
+    return resolved[:limit]
 
 
 # --- bib / PaperData conversion ---
@@ -250,12 +357,13 @@ def make_bib_entry(rec: Dict) -> str:
     is_journal = any(j in venue.lower() for j in ("journal", "transactions", "ieee t", "acm t"))
     etype = "article" if is_journal else "inproceedings"
     venue_field = "journal" if is_journal else "booktitle"
-    note = f"\n  note = {{arXiv:{rec['arxiv_id']}}}," if rec.get("arxiv_id") else ""
+    note = f"\n  note = {{arXiv:{rec['arxiv_id']}}}," if rec.get("arxiv_id") and not rec.get("doi") else ""
+    doi_line = f"\n  doi = {{{rec['doi']}}}," if rec.get("doi") else ""
     return (f"@{etype}{{{key},\n"
             f"  title = {{{esc(rec['title'])}}},\n"
             f"  author = {{{authors_str}}},\n"
             f"  {venue_field} = {{{esc(venue)}}},\n"
-            f"  year = {{{rec['year'] or ''}}},{note}\n}}")
+            f"  year = {{{rec['year'] or ''}}},{note}{doi_line}\n}}")
 
 
 def to_paper_data(rec: Dict, found_in_section: str = "Search", reason: str = ""):
