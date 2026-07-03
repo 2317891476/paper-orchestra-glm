@@ -64,10 +64,12 @@ python paper_writing_cli.py \
 
 ## Dev logs (newest month first)
 
+- [2026-07](devlog/2026-07.md)
 - [2026-06](devlog/2026-06.md)
 
 ## Timeline (landed milestones only)
 
+- **2026-07** — arXiv→formal publication resolution (DBLP+S2); GB/T 7714 国标 citation format for Chinese papers; enrichment post-cleanup (orphan removal + stronger prompt).
 - **2026-06** — Chinese survey support: engine-aware `compile_latex` (auto xelatex for ctex/xeCJK) + `templates/software_se/` (ctexart survey) + `se_survey/` example. Generated an 8-page Chinese SE survey end-to-end.
 - **2026-06** — Added `templates/{isca2026,asplos2026,dac2026}/` (ISCA IEEEtran + ASPLOS/DAC acmart). Architecture "big-three" + EDA now all covered.
 - **2026-06** — Added `templates/micro2026/` (ACM `acmart` MICRO template) + `my_paper/` example input folder.

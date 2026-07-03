@@ -40,7 +40,24 @@ to_paper_data(recs[0])   # -> PaperData(...)
 pip install deepxiv-sdk   # auto-registers free token to ~/.env on first use
 ```
 
+## Publication resolution (arXiv → formal venue)
+
+`resolve_publication(rec, keep_preprints=False)` — for each arXiv-sourced result, tries to find
+its **formally published** version (conference/journal):
+- **DBLP** (`dblp.uni-trier.de/search/publ/api`) — primary; authoritative for CS venues.
+- **S2** (`/paper/arXiv:{id}?fields=venue,publicationVenue`) — fallback; broader coverage.
+- Returns updated record (venue/year/doi) if a formal venue is found; **None** (drop) if not.
+- `keep_preprints=True` keeps preprint-only papers (default False = strict drop).
+- `make_bib_entry` only shows `note={arXiv:...}` for genuine preprints, never for resolved papers.
+  Adds `doi={...}` when available.
+
+Wired into `search_papers` as a post-filter: over-fetches `limit*2`, resolves each, drops
+preprint-only, returns top `limit`. ALL consumers (literature agent + enrichment) get formal
+citations automatically.
+
 ## Gotchas
 - DeepXiv CLI prints status lines before JSON; the module finds the first `{` to parse.
 - `make_bib_entry` escapes `&`, `_`, `%` in titles/venues (prevents LaTeX errors).
 - arXiv API returns Atom XML; parsed best-effort (missing fields tolerated).
+- DBLP via `dblp.uni-trier.de` (the `dblp.org` domain may be unreachable from some networks).
+- S2 rate-limits (429) — the resolver falls back gracefully (returns None = drop).

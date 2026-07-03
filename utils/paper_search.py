@@ -357,7 +357,9 @@ def make_bib_entry(rec: Dict) -> str:
     is_journal = any(j in venue.lower() for j in ("journal", "transactions", "ieee t", "acm t"))
     etype = "article" if is_journal else "inproceedings"
     venue_field = "journal" if is_journal else "booktitle"
-    note = f"\n  note = {{arXiv:{rec['arxiv_id']}}}," if rec.get("arxiv_id") and not rec.get("doi") else ""
+    # only show arXiv note for genuine preprints (venue IS arXiv/CoRR), never for resolved papers
+    is_preprint = not _is_real_venue(venue)
+    note = f"\n  note = {{arXiv:{rec['arxiv_id']}}}," if (rec.get("arxiv_id") and is_preprint) else ""
     doi_line = f"\n  doi = {{{rec['doi']}}}," if rec.get("doi") else ""
     return (f"@{etype}{{{key},\n"
             f"  title = {{{esc(rec['title'])}}},\n"

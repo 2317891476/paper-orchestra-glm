@@ -45,8 +45,18 @@ Input: a `paper_output_X/` dir with `latex_writeup/raw_draft_paper.tex` + `refer
 - `utils/paper_search.py` — `search_papers`, `make_bib_entry` (the search + bib generation)
 - Uses `call_llm_with_text_prompt` for citation-need analysis + citation insertion
 
+## Post-processing (automatic)
+
+1. **`_cleanup_orphans(tex, bib)`**: removes bib entries never `\cite`'d → numbering gap-free.
+2. **Stronger `INSERT_PROMPT`**: forces ≥10 `\cite` insertions (hard requirement), allows adding a
+   related-work paragraph. Prevents the LLM from returning near-identical tex.
+3. **Publication resolution**: `search_papers` now resolves arXiv preprints to formal venues
+   (DBLP/S2) before use. Preprint-only papers are dropped automatically.
+
 ## Gotchas
 - The LLM's full-tex-rewrite is conservative by nature; the strong prompt (`min_cite` requirement)
   is critical to force material citation insertion.
 - Bib `&`/`_`/`%` are escaped by `make_bib_entry` to prevent LaTeX errors.
 - Re-running finds different papers (stochastic search); the `.tex.bak` preserves the previous version.
+- For Chinese papers (ctexart/software_se template): use `\bibliographystyle{gbt7714-numerical}`
+  (GB/T 7714 national standard) instead of `unsrt`/`plain`.

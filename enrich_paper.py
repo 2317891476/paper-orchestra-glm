@@ -86,6 +86,30 @@ def _existing_keys(tex: str, bib: str) -> set:
     return {k.strip() for k in keys for k in k.split(",")}
 
 
+def _cleanup_orphans(tex_path: str, bib_path: str) -> int:
+    """Remove bib entries that are never \\cite'd in the tex. Returns count removed."""
+    tex = open(tex_path, encoding="utf-8").read()
+    bib = open(bib_path, encoding="utf-8").read()
+    cited = set()
+    for c in re.findall(r"\\cite\{([^}]+)\}", tex):
+        for k in c.split(","):
+            cited.add(k.strip())
+    # split bib into entries (each starts with @type{key,)
+    entries = re.split(r"(?=@\w+\{)", bib)
+    kept = []
+    removed = 0
+    for entry in entries:
+        m = re.match(r"@\w+\{([^,]+),", entry)
+        if m and m.group(1).strip() not in cited:
+            removed += 1
+            print(f"    orphan removed: {m.group(1).strip()}")
+            continue
+        kept.append(entry)
+    if removed:
+        open(bib_path, "w", encoding="utf-8").write("".join(kept))
+    return removed
+
+
 def main():
     ap = argparse.ArgumentParser(description="Enrich an existing paper with more citations.")
     ap.add_argument("--paper_dir", required=True, help="paper_output_X dir (has latex_writeup/)")
@@ -170,6 +194,11 @@ def main():
     # backup + write
     shutil.copy(tex_path, tex_path + ".bak")
     open(tex_path, "w", encoding="utf-8").write(enriched)
+
+    # 4.5 cleanup: remove orphan bib entries (in bib but never \cite'd) -> clean numbering
+    removed = _cleanup_orphans(tex_path, bib_path)
+    if removed:
+        print(f"  cleanup: removed {removed} orphan bib entries (uncited -> numbering now clean)")
 
     # 5. recompile
     print("Step 4: recompiling...")

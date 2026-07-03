@@ -16,6 +16,7 @@
 \usepackage{array}
 \usepackage{amsmath,amssymb}
 \usepackage{hyperref}
+\usepackage[numbers,super]{gbt7714}  % 国标 GB/T 7714 参考文献格式（中文论文用）
 \hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
 
 \captionsetup[figure]{name=图,labelsep=quad,font=small}
@@ -89,8 +90,8 @@
 结束语。
 %%%%%%%%% CONCLUSION %%%%%%%%%
 
-%%%%%%%%% -- BIB STYLE AND FILE (bibtex) -- %%%%%%%%%%
-\bibliographystyle{plain}
+%%%%%%%%% -- BIB STYLE AND FILE (bibtex, GB/T 7714 国标) -- %%%%%%%%%%
+\bibliographystyle{gbt7714-numerical}
 \bibliography{references}
 
 \end{document}
