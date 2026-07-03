@@ -52,6 +52,15 @@ python paper_writing_cli.py ... --from_stage literature
 
 Full run (no `--stages`/`--from_stage`) keeps the original wipe + 3× retry behavior.
 
+## Utility scripts (repo root)
+
+| Script | Purpose |
+| --- | --- |
+| `enrich_paper.py` | Add citations to an existing paper (see [enrich-paper](enrich-paper.md)) |
+| `fast_dac_draft.py` | Quick DAC draft from a method .md (outline+section only, no literature/refinement) |
+| `optimize_papers.py` | Re-run outline+section with `concepts/` implementation docs folded into the materials |
+| `translate_to_chinese.py` | Translate an English LaTeX paper to a readable Chinese PDF (xeCJK + xelatex) |
+
 ## Expected raw_materials layout
 
 ```
