@@ -28,6 +28,8 @@ INPUTS:
 * 'conference_guidelines.md': Formatting rules.
 * 'figures_list': Available figure files.
 
+**IMPORTANT — Page Budget**: The guidelines contain a `## Page Budget (section allocation)` table. You MUST follow it to determine content depth per section: write substantively for sections budgeted 3+ pages (Method, Results — detailed paragraphs, tables, analysis); keep sections budgeted ≤1 page concise. The total output should approach the venue's page limit.
+
 CRITICAL INSTRUCTIONS:
 
 1. Existing Content Preservation: 

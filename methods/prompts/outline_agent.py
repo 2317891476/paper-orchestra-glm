@@ -24,6 +24,8 @@ Your inputs are:
 3.  `template.tex`: The target structure. You must use the section commands (e.g., `\\section{{...}}`) found here as your primary skeleton.
 4.  `conference_guidelines.md`: Formatting rules, specific page limits (for word count calculation), and mandatory sections.
 
+**IMPORTANT — Page Budget**: The guidelines contain a `## Page Budget (section allocation)` table. You MUST follow it to plan section depth: sections with larger page budgets (e.g., Method 3–4 pages, Results 3–4 pages) should get more subsections and detailed bullets; sections with ≤1 page should be concise. The total should match the venue's page limit.
+
 ### Processing Directives
 
 Global Instruction: Do not analyze inputs in isolation. You must synthesize information across all provided documents for every step.
