@@ -116,6 +116,7 @@ def main():
     ap.add_argument("--cutoff", default=None, help="YYYY-MM cutoff for new refs")
     ap.add_argument("--max_new", type=int, default=15, help="max new references to add")
     ap.add_argument("--model_name", default=MODEL)
+    ap.add_argument("--template_dir", default=None, help="templates/<conf> for format check")
     args = ap.parse_args()
 
     lw = os.path.join(args.paper_dir, "latex_writeup")
@@ -210,6 +211,19 @@ def main():
     print(f"  new \\cite added (approx): {max(0, n_new_cite)}")
     print(f"  keys: {added_keys}")
     print(f"  original backed up to {tex_path}.bak")
+
+    # 6. format check (closed-loop QA)
+    if args.template_dir:
+        import subprocess as _sp
+        print("\n" + "=" * 60)
+        print("  FORMAT CHECK (auto after enrichment)")
+        print("=" * 60)
+        try:
+            _sp.run(["python3", "check_paper.py",
+                     "--paper_dir", args.paper_dir,
+                     "--template_dir", args.template_dir], timeout=120)
+        except Exception as e:
+            print(f"  (format check skipped: {e})")
 
 
 if __name__ == "__main__":

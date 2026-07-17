@@ -32,6 +32,9 @@ raw_material/{idea_sparse.md, experimental_log.md, figures/}
    │
    ▼
    final_paper.pdf
+   │
+   ▼
+5. ✅ Format Check (auto)   → check_paper.py reads template format.yaml, runs 11 checks
 ```
 
 Optional: **PlottingAgent** (stage 2.5, parallel) generates figures from code when

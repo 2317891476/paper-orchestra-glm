@@ -85,6 +85,7 @@ def write_single_paper(
 
     if not fresh:
         _run_selected()
+        _format_check(base_dir, latex_template_dir)
         return True
 
     # Full run keeps the original retry semantics.
@@ -92,6 +93,7 @@ def write_single_paper(
     for cur_try in range(max_n_tries):
         try:
             _run_selected()
+            _format_check(base_dir, latex_template_dir)
             return True
         except Exception:
             print(f"[Try {cur_try+1}/{max_n_tries}] EXCEPTION in perform_writeup:")
@@ -100,6 +102,24 @@ def write_single_paper(
                 print("Try again now...")
     print(f"Writeup failed after {max_n_tries}! Stop here.")
     return False
+
+
+def _format_check(base_dir, template_dir):
+    """Run the format checker after paper generation (closed-loop QA)."""
+    import subprocess as _sp
+    script = os.path.join(os.path.dirname(__file__), "..", "check_paper.py")
+    if not os.path.exists(script):
+        return
+    print("\n" + "=" * 60)
+    print("  FORMAT CHECK (auto)")
+    print("=" * 60)
+    try:
+        _sp.run(
+            ["python3", script, "--paper_dir", base_dir, "--template_dir", template_dir],
+            timeout=120,
+        )
+    except Exception as e:
+        print(f"  (format check skipped: {e})")
 
 
 # --- stage runner internals -------------------------------------------------

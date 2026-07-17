@@ -56,7 +56,8 @@ Full run (no `--stages`/`--from_stage`) keeps the original wipe + 3× retry beha
 
 | Script | Purpose |
 | --- | --- |
-| `enrich_paper.py` | Add citations to an existing paper (see [enrich-paper](enrich-paper.md)) |
+| `check_paper.py` | **Format checker** — validates PDF against template's `format.yaml` (11 checks). Runs **automatically** after pipeline + enrichment. Also standalone: `python check_paper.py --paper_dir X --template_dir templates/Y` |
+| `enrich_paper.py` | Add citations to an existing paper (see [enrich-paper](enrich-paper.md)). Now runs format check after enrichment if `--template_dir` given. |
 | `fast_dac_draft.py` | Quick DAC draft from a method .md (outline+section only, no literature/refinement) |
 | `optimize_papers.py` | Re-run outline+section with `concepts/` implementation docs folded into the materials |
 | `translate_to_chinese.py` | Translate an English LaTeX paper to a readable Chinese PDF (xeCJK + xelatex) |

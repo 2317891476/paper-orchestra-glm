@@ -20,4 +20,4 @@ LLM-StaticBugLens*.md
 
 # Local throwaway scripts
 /fix_and_recompile.py
-/test_*.py
+/test_*.pyLogicBranch_rjx_chenshuang/

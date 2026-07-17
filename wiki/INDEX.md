@@ -69,6 +69,7 @@ python paper_writing_cli.py \
 
 ## Timeline (landed milestones only)
 
+- **2026-07** — Format checker (`check_paper.py`) integrated into pipeline closed-loop; `format.yaml` per template (9 files); 11 template-aware checks auto-run after generation + enrichment.
 - **2026-07** — arXiv→formal publication resolution (DBLP+S2); GB/T 7714 国标 citation format for Chinese papers; enrichment post-cleanup (orphan removal + stronger prompt).
 - **2026-06** — Chinese survey support: engine-aware `compile_latex` (auto xelatex for ctex/xeCJK) + `templates/software_se/` (ctexart survey) + `se_survey/` example. Generated an 8-page Chinese SE survey end-to-end.
 - **2026-06** — Added `templates/{isca2026,asplos2026,dac2026}/` (ISCA IEEEtran + ASPLOS/DAC acmart). Architecture "big-three" + EDA now all covered.
