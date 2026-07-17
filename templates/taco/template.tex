@@ -1,0 +1,102 @@
+% !TeX program = xelatex
+%% TACO (ACM Transactions on Architecture and Code Optimization) submission skeleton.
+%% Journal format: acmsmall (two-column). For review: add manuscript,review,anonymous.
+\documentclass[acmsmall,manuscript,review,anonymous]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{Bib\TeX}}}
+
+\setcopyright{acmlicensed}
+\copyrightyear{2026}
+\acmYear{2026}
+\acmDOI{XXXXXXX.XXXXXXX}
+\acmJournal{TACO}
+\acmVolume{23}
+\acmNumber{1}
+\acmArticle{1}
+\acmMonth{1}
+
+\settopmatter{printfolios=true}
+\settopmatter{printacmref=false}
+
+%% Extra packages the Section agent relies on (tables, cross-refs).
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{subcaption}
+
+%% In acmart, abstract + ACM Reference Format block come BEFORE \maketitle.
+\begin{document}
+
+%%%%%%%%% TITLE %%%%%%%%%
+\title{My Title}
+
+%% ACM CCS concepts (required for TACO camera-ready; use placeholders for submission).
+\ccsdesc[500]{Computer systems organization~Special-purpose systems}
+\ccsdesc[300]{Software and its engineering~Software testing and debugging}
+
+\keywords{computer architecture, code optimization, performance evaluation}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+Introduction here.
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+
+\section{Background and Motivation}
+\label{sec:background}
+%%%%%%%%% BACKGROUND %%%%%%%%%
+Background and motivation here.
+%%%%%%%%% BACKGROUND %%%%%%%%%
+
+\section{Key Observations and Problem Analysis}
+\label{sec:analysis}
+%%%%%%%%% PROBLEM ANALYSIS %%%%%%%%%
+Key observations / problem analysis here.
+%%%%%%%%% PROBLEM ANALYSIS %%%%%%%%%
+
+\section{Method and Architecture Design}
+\label{sec:method}
+%%%%%%%%% METHOD %%%%%%%%%
+Method / microarchitecture design here.
+%%%%%%%%% METHOD %%%%%%%%%
+
+\section{Implementation}
+\label{sec:implementation}
+%%%%%%%%% IMPLEMENTATION %%%%%%%%%
+Implementation details here.
+%%%%%%%%% IMPLEMENTATION %%%%%%%%%
+
+\section{Evaluation Methodology}
+\label{sec:methodology}
+%%%%%%%%% EVAL SETUP %%%%%%%%%
+Experimental methodology here.
+%%%%%%%%% EVAL SETUP %%%%%%%%%
+
+\section{Results and Analysis}
+\label{sec:results}
+%%%%%%%%% RESULTS %%%%%%%%%
+Results and ablation study here.
+%%%%%%%%% RESULTS %%%%%%%%%
+
+\section{Related Work}
+\label{sec:related}
+%%%%%%%%% RELATED WORK %%%%%%%%%
+Related work here.
+%%%%%%%%% RELATED WORK %%%%%%%%%
+
+\section{Conclusion}
+\label{sec:conclusion}
+%%%%%%%%% CONCLUSION %%%%%%%%%
+Conclusion here.
+%%%%%%%%% CONCLUSION %%%%%%%%%
+
+%% Double-blind submission: no acknowledgments.
+% \begin{acks}
+% \end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
