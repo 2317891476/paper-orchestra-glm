@@ -1,0 +1,8 @@
+page_limit_body: 11
+body_font_pt: 9
+columns: 2
+font_family: Libertine
+anonymous: true
+engine: pdflatex
+bib_style: ACM-Reference-Format
+cls: acmart

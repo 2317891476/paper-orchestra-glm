@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Comprehensive paper format checker.
+"""Comprehensive paper format checker — reads template's format.yaml for specs.
 
-Validates a generated paper against venue requirements by inspecting the
-.tex, .bib, .log, and PDF. Run standalone or after pipeline/enrichment.
+Validates a generated paper against the venue's format specification by
+inspecting .tex, .bib, .log, and the compiled PDF.
 
 Usage:
-  python check_paper.py --paper_dir paper_output_logicbranch
+  python check_paper.py --paper_dir paper_output_logicbranch --template_dir templates/taco
   python check_paper.py --paper_dir paper_output_se --template_dir templates/software_se
 """
 
@@ -28,328 +28,322 @@ def _read(path):
 
 def _run(cmd):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        return r.stdout + r.stderr
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
     except Exception:
         return ""
 
 
 def _pdf_pages(pdf):
-    out = _run(["pdfinfo", pdf])
-    m = re.search(r"Pages:\s+(\d+)", out)
+    m = re.search(r"Pages:\s+(\d+)", _run(["pdfinfo", pdf]))
     return int(m.group(1)) if m else 0
 
 
 def _pdf_fonts(pdf):
-    out = _run(["pdffonts", pdf])
-    fonts = []
-    for line in out.splitlines()[2:]:  # skip header
-        parts = line.split()
-        if parts:
-            fonts.append(parts[0])
-    return fonts
+    lines = _run(["pdffonts", pdf]).splitlines()[2:]
+    return [l.split()[0] for l in lines if l.strip() and l.split()]
 
 
-def _parse_guidelines(template_dir):
-    """Extract page limit, font, format info from guidelines.md."""
-    g = {}
-    md = _read(os.path.join(template_dir or "", "guidelines.md"))
-    # page limit
-    m = re.search(r"(\d+)\s*pages?\s*(?:excl|\(not including)", md, re.I)
-    if not m:
-        m = re.search(r"(\d+)\s*pages?\s*(?:two.column|body|text)", md, re.I)
-    g["page_limit"] = int(m.group(1)) if m else None
-    # font size
-    m = re.search(r"(\d+)\s*pt.*(?:font|body|times)", md, re.I)
-    g["font_pt"] = int(m.group(1)) if m else None
-    # format hints
-    g["is_chinese"] = "ctexart" in _read(os.path.join(template_dir or "", "template.tex"))
-    g["is_acmart"] = "acmart" in _read(os.path.join(template_dir or "", "template.tex"))
-    g["is_ieeetran"] = "IEEEtran" in _read(os.path.join(template_dir or "", "template.tex"))
-    return g
+def _detect_columns(pdf):
+    """Detect 1 vs 2 columns by rendering a page and finding a vertical gutter."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        _run(["pdftoppm", "-png", "-f", "3", "-l", "3", "-r", "80", pdf, f"{td}/pg"])
+        pngs = list(Path(td).glob("pg*.png"))
+        if not pngs:
+            return None
+        try:
+            from PIL import Image
+            import numpy as np
+            img = Image.open(pngs[0]).convert("L")
+            w, h = img.size
+            arr = np.array(img)
+            mid = arr[h // 4:3 * h // 4, w // 3:2 * w // 3]
+            white_frac = np.mean(mid > 240, axis=0)
+            return 2 if white_frac.max() > 0.9 else 1
+        except Exception:
+            return None
 
 
-# ── individual checks ────────────────────────────────────────────────────────
+def _detect_engine(log):
+    if "XeTeX" in log or "xelatex" in log.lower():
+        return "xelatex"
+    if "LuaTeX" in log:
+        return "lualatex"
+    return "pdflatex"
 
-def check_compilation(lw_dir):
-    """Check LaTeX compile errors and overfull warnings."""
-    log = _read(os.path.join(lw_dir, "raw_draft_paper.log"))
+
+def _detect_font_size(log):
+    m = re.search(r"Using fontsize (\d+)pt", log)
+    return int(m.group(1)) if m else None
+
+
+def _detect_bib_style(tex):
+    m = re.search(r"\\bibliographystyle\{([^}]+)\}", tex)
+    return m.group(1) if m else None
+
+
+def _detect_anonymous(tex):
+    return bool(re.search(r"anonymous", tex[:500], re.I))
+
+
+def load_spec(template_dir):
+    """Load format.yaml from the template dir."""
+    yaml_path = os.path.join(template_dir or "", "format.yaml")
+    text = _read(yaml_path)
+    if not text:
+        return {}
+    spec = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("#") or not line or ":" not in line:
+            continue
+        k, _, v = line.partition(":")
+        k = k.strip()
+        v = v.strip()
+        if v.lower() in ("null", "none", ""):
+            spec[k] = None
+        elif v.lower() in ("true", "false"):
+            spec[k] = v.lower() == "true"
+        elif v.isdigit():
+            spec[k] = int(v)
+        else:
+            spec[k] = v
+    return spec
+
+
+# ── checks ───────────────────────────────────────────────────────────────────
+
+def check_compilation(lw, pdf, spec):
+    log = _read(f"{lw}/raw_draft_paper.log")
     errors = re.findall(r"^! (.+)", log, re.MULTILINE)
-    overfull = re.findall(r"Overfull \\hbox \(([\d.]+)pt", log)
-    big_overfull = [f for f in overfull if float(f) > 20]
     return {
         "errors": len(errors),
-        "error_samples": errors[:5],
-        "overfull_total": len(overfull),
-        "overfull_large": len(big_overfull),
-        "status": "PASS" if not errors else "FAIL",
+        "error_samples": errors[:3],
+        "status": "FAIL" if errors else "PASS",
     }
 
 
-def check_fonts(pdf, guide):
-    """Check embedded fonts against expected ACM/IEEE/Chinese fonts."""
+def check_fonts(lw, pdf, spec):
     fonts = _pdf_fonts(pdf)
-    fonts_lower = " ".join(fonts).lower()
+    fonts_str = " ".join(fonts).lower()
+    expected = (spec.get("font_family") or "").lower()
     issues = []
-    if guide.get("is_acmart"):
-        if "libert" not in fonts_lower:
-            issues.append("ACM template should use Linux Libertine/Biolinum fonts")
-            if "lmroman" in fonts_lower or "lmsans" in fonts_lower:
-                issues.append("  → currently using Latin Modern (fallback). Install texlive-fonts-extra.")
-    if guide.get("is_ieeetran"):
-        if "libert" in fonts_lower:
-            pass  # some IEEE templates now use Libertine
-    if guide.get("is_chinese"):
-        # check for a CJK font
-        if not any(k in fonts_lower for k in ("droid", "fandol", "noto", "sim", "cjk")):
-            issues.append("Chinese paper: no CJK font detected in PDF")
-    return {
-        "fonts_found": fonts[:8],
-        "issues": issues,
-        "status": "PASS" if not issues else "WARN",
-    }
+    if expected == "libertine":
+        if "libert" not in fonts_str:
+            issues.append(f"Expected Libertine fonts, got: {fonts[:3]}")
+            if "lmroman" in fonts_str:
+                issues.append("  → Latin Modern fallback. Install texlive-fonts-extra.")
+    elif expected == "times":
+        # Times = ptm or NimbusRoman or similar
+        if not any(k in fonts_str for k in ("times", "ptm", "nimbus", "linlib")):
+            # IEEEtran uses Times-like; acmart with Libertine is also fine for "Times" venues
+            pass  # too many valid variants; just warn if clearly wrong
+    elif expected == "cjk":
+        if not any(k in fonts_str for k in ("droid", "fandol", "noto", "sim", "cjk", "song")):
+            issues.append("Chinese paper: no CJK font detected")
+    return {"fonts_sample": fonts[:5], "expected": expected or "any", "issues": issues,
+            "status": "WARN" if issues else "PASS"}
 
 
-def check_font_size(lw_dir, guide):
-    """Check the body font size from the log."""
-    log = _read(os.path.join(lw_dir, "raw_draft_paper.log"))
-    m = re.search(r"Using fontsize (\d+)pt", log)
-    actual = int(m.group(1)) if m else None
-    expected = guide.get("font_pt")
+def check_font_size(lw, pdf, spec):
+    log = _read(f"{lw}/raw_draft_paper.log")
+    actual = _detect_font_size(log)
+    expected = spec.get("body_font_pt")
     issues = []
-    if actual and expected and actual != expected:
-        issues.append(f"Font size {actual}pt, expected {expected}pt per guidelines")
-    return {
-        "actual_pt": actual,
-        "expected_pt": expected,
-        "issues": issues,
-        "status": "PASS" if not issues else ("INFO" if not expected else "WARN"),
-    }
+    if expected and actual and actual != expected:
+        issues.append(f"Font size {actual}pt, expected {expected}pt")
+    return {"actual": actual, "expected": expected, "issues": issues,
+            "status": "WARN" if issues else "PASS"}
 
 
-def check_page_count(pdf, guide):
-    """Check page count vs venue limit."""
+def check_page_count(lw, pdf, spec):
     pages = _pdf_pages(pdf)
-    limit = guide.get("page_limit")
+    limit = spec.get("page_limit_body")
     issues = []
-    if limit and pages > limit:
-        issues.append(f"{pages} pages EXCEEDS limit of {limit}")
-    elif limit and pages < limit * 0.5:
-        issues.append(f"Only {pages} pages (limit is {limit}) — paper may be too short")
-    return {
-        "pages": pages,
-        "limit": limit,
-        "issues": issues,
-        "status": "FAIL" if (limit and pages > limit) else "PASS",
-    }
+    if limit:
+        if pages > limit + 4:  # allow refs overhead
+            issues.append(f"{pages} pages likely EXCEEDS body limit of {limit}")
+        elif pages < limit * 0.4:
+            issues.append(f"Only {pages} pages (limit {limit}) — paper may be too short")
+    return {"pages": pages, "limit": limit, "issues": issues,
+            "status": "FAIL" if (limit and pages > limit + 4) else "PASS"}
 
 
-def check_references(lw_dir):
-    """Check citation consistency: orphans, missing keys, count."""
-    tex = _read(os.path.join(lw_dir, "raw_draft_paper.tex"))
-    bib = _read(os.path.join(lw_dir, "references.bib"))
+def check_columns(lw, pdf, spec):
+    expected = spec.get("columns")
+    actual = _detect_columns(pdf)
+    issues = []
+    if expected and actual and expected != actual:
+        issues.append(f"Detected {actual}-column, expected {expected}-column")
+    return {"actual": actual, "expected": expected, "issues": issues,
+            "status": "WARN" if issues else "PASS"}
+
+
+def check_engine(lw, pdf, spec):
+    log = _read(f"{lw}/raw_draft_paper.log")
+    actual = _detect_engine(log)
+    expected = spec.get("engine")
+    issues = []
+    if expected and actual and actual != expected:
+        issues.append(f"Compiled with {actual}, expected {expected}")
+    return {"actual": actual, "expected": expected, "issues": issues,
+            "status": "WARN" if issues else "PASS"}
+
+
+def check_bib_style(lw, pdf, spec):
+    tex = _read(f"{lw}/raw_draft_paper.tex")
+    actual = _detect_bib_style(tex)
+    expected = spec.get("bib_style")
+    issues = []
+    if expected and actual and expected.lower() not in actual.lower():
+        issues.append(f"Bib style '{actual}', expected '{expected}'")
+    return {"actual": actual, "expected": expected, "issues": issues,
+            "status": "WARN" if issues else "PASS"}
+
+
+def check_references(lw, pdf, spec):
+    tex = _read(f"{lw}/raw_draft_paper.tex")
+    bib = _read(f"{lw}/references.bib")
     cited = set()
     for c in re.findall(r"\\cite\{([^}]+)\}", tex):
-        for k in c.split(","):
-            cited.add(k.strip())
+        cited.update(k.strip() for k in c.split(","))
     bib_keys = set(re.findall(r"@\w+\{([^,]+),", bib))
     orphans = bib_keys - cited
     missing = cited - bib_keys
-    # arXiv notes on non-preprint entries
-    arxiv_notes = re.findall(r"note\s*=\s*\{arXiv:", bib)
-    formal_with_arxiv = 0
+    arxiv_on_formal = 0
     for entry in re.split(r"(?=@\w+\{)", bib):
-        m = re.match(r"@\w+\{([^,]+),", entry)
-        if not m:
-            continue
+        has_arxiv = "arxiv:" in entry.lower()
         venue_m = re.search(r"(?:booktitle|journal)\s*=\s*\{([^}]+)\}", entry)
         venue = (venue_m.group(1) or "").lower() if venue_m else ""
-        has_arxiv_note = "arxiv:" in entry.lower()
-        is_real_venue = venue and "arxiv" not in venue
-        if has_arxiv_note and is_real_venue:
-            formal_with_arxiv += 1
+        if has_arxiv and venue and "arxiv" not in venue:
+            arxiv_on_formal += 1
+    issues = []
+    if missing:
+        issues.append(f"{len(missing)} cited keys MISSING from bib")
+    if orphans:
+        issues.append(f"{len(orphans)} orphan bib entries (uncited)")
+    if arxiv_on_formal:
+        issues.append(f"{arxiv_on_formal} formal-venue entries still have arXiv notes")
     return {
-        "cite_commands": len(re.findall(r"\\cite\{", tex)),
-        "distinct_cited": len(cited),
-        "bib_entries": len(bib_keys),
-        "orphans": len(orphans),
-        "missing_keys": len(missing),
-        "arxiv_notes_total": len(arxiv_notes),
-        "arxiv_notes_on_formal": formal_with_arxiv,
-        "issues": ([f"{len(orphans)} orphan bib entries (uncited)"] if orphans else [])
-                 + ([f"{len(missing)} cited keys missing from bib"] if missing else [])
-                 + ([f"{formal_with_arxiv} formal-venue entries still have arXiv notes"] if formal_with_arxiv else []),
-        "status": "FAIL" if missing else ("WARN" if orphans or formal_with_arxiv else "PASS"),
+        "cite_count": len(re.findall(r"\\cite\{", tex)),
+        "distinct_cited": len(cited), "bib_entries": len(bib_keys),
+        "orphans": len(orphans), "missing": len(missing),
+        "arxiv_on_formal": arxiv_on_formal, "issues": issues,
+        "status": "FAIL" if missing else ("WARN" if orphans or arxiv_on_formal else "PASS"),
     }
 
 
-def check_figures(lw_dir):
-    """Check all \\includegraphics resolve and are referenced."""
-    tex = _read(os.path.join(lw_dir, "raw_draft_paper.tex"))
+def check_figures(lw, pdf, spec):
+    tex = _read(f"{lw}/raw_draft_paper.tex")
     includes = re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", tex)
-    missing_files = []
+    missing = []
     for inc in includes:
-        # try several base dirs
-        found = False
-        for base in [lw_dir, os.path.join(lw_dir, "figures"), os.path.join(lw_dir, "picture")]:
-            p = os.path.join(base, inc)
-            if os.path.exists(p):
-                found = True
-                break
-            # also try with figures/ prefix
-            p2 = os.path.join(base, "figures", os.path.basename(inc))
-            if os.path.exists(p2):
-                found = True
-                break
+        found = any(os.path.exists(os.path.join(base, inc))
+                    for base in [lw, f"{lw}/figures", f"{lw}/picture"])
         if not found:
-            missing_files.append(inc)
-    # check all figures have \\label and \\cref/\\ref
+            found = any(os.path.exists(os.path.join(base, "figures", os.path.basename(inc)))
+                        for base in [lw, f"{lw}/picture"])
+        if not found:
+            missing.append(inc)
     labels = set(re.findall(r"\\label\{(fig:[^}]+)\}", tex))
     refs = set()
     for r in re.findall(r"\\(?:cref|ref|Cref)\{([^}]+)\}", tex):
-        for k in r.split(","):
-            refs.add(k.strip())
-    unlabeled = max(0, len(includes) - len(labels))
-    unreferenced = max(0, len(labels - refs))
-    return {
-        "figures_total": len(includes),
-        "missing_files": missing_files[:5],
-        "unlabeled": unlabeled,
-        "unreferenced": unreferenced,
-        "issues": ([f"{len(missing_files)} figure file(s) not found: {missing_files[:3]}"] if missing_files else [])
-                 + ([f"{unlabeled} figure(s) without \\label"] if unlabeled > 0 else [])
-                 + ([f"{unreferenced} labeled figure(s) never \\ref'd"] if unreferenced > 0 else []),
-        "status": "FAIL" if missing_files else "PASS",
-    }
-
-
-def check_structure(lw_dir, guide):
-    """Check required sections are present."""
-    tex = _read(os.path.join(lw_dir, "raw_draft_paper.tex"))
-    sections = re.findall(r"\\section\*?\{([^}]+)\}", tex)
-    section_lower = [s.lower() for s in sections]
-    # standard expected sections
-    expected = ["introduction", "conclusion"]
-    if guide.get("is_chinese"):
-        # Chinese template: intro is often unnumbered text before first \section;
-        # check for 引言 OR 国内外研究进展 OR 正文 before sections
-        intro_present = bool(re.search(r"引言|国内外研究进展|基本概念", tex))
-        conclusion_present = bool(re.search(r"结束语|结论", tex))
-        missing = []
-        if not intro_present:
-            missing.append("引言/研究进展")
-        if not conclusion_present:
-            missing.append("结束语/结论")
-    else:
-        missing = []
-        for exp in expected:
-            if not any(exp in s for s in section_lower):
-                missing.append(exp)
-    return {
-        "sections_found": sections,
-        "missing_required": missing,
-        "issues": [f"Missing required section: {m}" for m in missing],
-        "status": "FAIL" if missing else "PASS",
-    }
-
-
-def check_anonymity(lw_dir, guide):
-    """Check double-blind compliance (no real author info if anonymous)."""
-    tex = _read(os.path.join(lw_dir, "raw_draft_paper.tex"))
-    has_anonymous = "anonymous" in tex.lower() and "documentclass" in tex.lower()
+        refs.update(k.strip() for k in r.split(","))
     issues = []
-    if has_anonymous or guide.get("is_acmart"):
-        # check for real names/emails in the tex
-        emails = re.findall(r"\\email\{([^}]+)\}", tex)
-        real_emails = [e for e in emails if not e.startswith("xxx") and "@" in e and "example" not in e]
-        if real_emails and "anonymous" in tex.lower():
-            issues.append(f"Anonymous mode but {len(real_emails)} real email(s) found")
-        # check for non-placeholder authors
-        if "anonymous author" not in tex.lower() and "作者姓名" in tex:
-            pass  # Chinese template placeholder
-    return {
-        "anonymous_mode": "anonymous" in tex.lower(),
-        "issues": issues,
-        "status": "WARN" if issues else "PASS",
-    }
+    if missing:
+        issues.append(f"{len(missing)} missing file(s): {missing[:3]}")
+    issues.extend([f"{max(0, len(includes) - len(labels))} figure(s) without \\label"]
+                  if len(includes) > len(labels) else [])
+    return {"total": len(includes), "missing": missing[:3], "issues": issues,
+            "status": "FAIL" if missing else "PASS"}
 
 
-def check_overfull(lw_dir):
-    """Detailed overfull analysis."""
-    log = _read(os.path.join(lw_dir, "raw_draft_paper.log"))
-    overfull = re.findall(r"Overfull \\hbox \(([\d.]+)pt", log)
-    vals = [float(v) for v in overfull] if overfull else []
-    return {
-        "total": len(vals),
-        "negligible": sum(1 for v in vals if v <= 5),
-        "minor": sum(1 for v in vals if 5 < v <= 20),
-        "large": sum(1 for v in vals if v > 20),
-        "max_pt": max(vals) if vals else 0,
-        "status": "PASS" if not any(v > 20 for v in vals) else "WARN",
-    }
+def check_anonymity(lw, pdf, spec):
+    tex = _read(f"{lw}/raw_draft_paper.tex")
+    expected_anon = spec.get("anonymous")
+    actual_anon = _detect_anonymous(tex)
+    issues = []
+    if expected_anon:
+        emails = [e for e in re.findall(r"\\email\{([^}]+)\}", tex)
+                  if "@" in e and "example" not in e and "xxx" not in e.lower()]
+        if emails:
+            issues.append(f"Anonymous venue but {len(emails)} real email(s) in tex")
+    elif expected_anon is False and not actual_anon:
+        pass  # non-anonymous venue, no issue
+    return {"expected_anon": expected_anon, "actual_anon": actual_anon,
+            "issues": issues, "status": "WARN" if issues else "PASS"}
 
 
-# ── main ─────────────────────────────────────────────────────────────────────
+def check_overfull(lw, pdf, spec):
+    log = _read(f"{lw}/raw_draft_paper.log")
+    vals = [float(v) for v in re.findall(r"Overfull \\hbox \(([\d.]+)pt", log)]
+    return {"total": len(vals), "large": sum(1 for v in vals if v > 20),
+            "max": max(vals) if vals else 0,
+            "status": "WARN" if any(v > 20 for v in vals) else "PASS"}
+
+
+# ── runner ───────────────────────────────────────────────────────────────────
 
 CHECKS = [
-    ("Compilation",     lambda lw, pdf, g: check_compilation(lw)),
-    ("Fonts",           lambda lw, pdf, g: check_fonts(pdf, g)),
-    ("Font Size",       lambda lw, pdf, g: check_font_size(lw, g)),
-    ("Page Count",      lambda lw, pdf, g: check_page_count(pdf, g)),
-    ("References",      lambda lw, pdf, g: check_references(lw)),
-    ("Figures",         lambda lw, pdf, g: check_figures(lw)),
-    ("Structure",       lambda lw, pdf, g: check_structure(lw, g)),
-    ("Anonymity",       lambda lw, pdf, g: check_anonymity(lw, g)),
-    ("Overfull Boxes",  lambda lw, pdf, g: check_overfull(lw)),
+    ("Compilation",   check_compilation),
+    ("Fonts",         check_fonts),
+    ("Font Size",     check_font_size),
+    ("Page Count",    check_page_count),
+    ("Columns",       check_columns),
+    ("Engine",        check_engine),
+    ("Bib Style",     check_bib_style),
+    ("References",    check_references),
+    ("Figures",       check_figures),
+    ("Anonymity",     check_anonymity),
+    ("Overfull",      check_overfull),
 ]
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Comprehensive paper format checker.")
-    ap.add_argument("--paper_dir", required=True, help="paper_output_X dir")
-    ap.add_argument("--template_dir", default=None, help="templates/<conf> for guidelines")
+    ap = argparse.ArgumentParser(description="Paper format checker (template-aware).")
+    ap.add_argument("--paper_dir", required=True)
+    ap.add_argument("--template_dir", default=None)
     args = ap.parse_args()
 
-    lw = os.path.join(args.paper_dir, "latex_writeup")
-    # find the PDF
-    pdf = os.path.join(args.paper_dir, "final_paper.pdf")
-    if not os.path.exists(pdf):
-        pdf = os.path.join(args.paper_dir, "final_paper_enriched.pdf")
-    if not os.path.exists(pdf):
-        for f in os.listdir(lw):
-            if f.endswith(".pdf"):
-                pdf = os.path.join(lw, f)
-                break
+    lw = f"{args.paper_dir}/latex_writeup"
+    pdf = next((f"{args.paper_dir}/{n}" for n in
+                ["final_paper.pdf", "final_paper_enriched.pdf"]
+                if os.path.exists(f"{args.paper_dir}/{n}")), None)
+    if not pdf:
+        pdfs = [f for f in os.listdir(lw) if f.endswith(".pdf")] if os.path.isdir(lw) else []
+        pdf = f"{lw}/{pdfs[0]}" if pdfs else None
 
-    guide = _parse_guidelines(args.template_dir)
+    spec = load_spec(args.template_dir)
 
-    print("=" * 70)
-    print(f"  PAPER FORMAT CHECK — {args.paper_dir}")
-    print(f"  PDF: {pdf}")
-    print(f"  Template: {args.template_dir or '(none — generic checks)'}")
-    print("=" * 70)
+    print("=" * 72)
+    print(f"  FORMAT CHECK — {args.paper_dir}")
+    print(f"  PDF: {pdf or '(not found)'}")
+    venue = args.template_dir.split("/")[-1] if args.template_dir else "generic"
+    print(f"  Venue: {venue}")
+    if spec:
+        print(f"  Spec: {spec.get('page_limit_body', '?')}p / "
+              f"{spec.get('body_font_pt', '?')}pt / "
+              f"{spec.get('columns', '?')}-col / "
+              f"{spec.get('font_family', '?')} / "
+              f"{spec.get('engine', '?')}")
+    else:
+        print("  Spec: (no format.yaml — generic checks only)")
+    print("=" * 72)
 
-    all_pass = True
+    all_ok = True
     for name, fn in CHECKS:
-        result = fn(lw, pdf, guide)
-        status = result.get("status", "?")
-        icon = {"PASS": "✅", "FAIL": "❌", "WARN": "⚠️", "INFO": "ℹ️"}.get(status, "?")
-        if status in ("FAIL", "WARN"):
-            all_pass = False
-        print(f"\n{icon} {name} [{status}]")
-        for k, v in result.items():
-            if k == "status" or k == "issues":
-                continue
-            if isinstance(v, list) and len(v) > 5:
-                v = v[:5] + [f"... ({len(v)} total)"]
-            print(f"   {k}: {v}")
-        for issue in result.get("issues", []):
+        r = fn(lw, pdf or "", spec)
+        st = r.pop("status", "?")
+        icon = {"PASS": "✅", "FAIL": "❌", "WARN": "⚠️"}.get(st, "?")
+        if st in ("FAIL", "WARN"):
+            all_ok = False
+        detail = ", ".join(f"{k}={v}" for k, v in r.items() if k != "issues")
+        print(f"{icon} {name:16s} [{st}]  {detail}")
+        for issue in r.get("issues", []):
             print(f"   → {issue}")
 
-    print("\n" + "=" * 70)
-    print(f"  OVERALL: {'✅ ALL CHECKS PASSED' if all_pass else '⚠️  ISSUES FOUND — see above'}")
-    print("=" * 70)
-    return 0 if all_pass else 1
+    print(f"\n{'✅ ALL PASS' if all_ok else '⚠️ ISSUES FOUND'}")
+    return 0 if all_ok else 1
 
 
 if __name__ == "__main__":

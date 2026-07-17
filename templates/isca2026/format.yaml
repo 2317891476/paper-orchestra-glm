@@ -1,0 +1,8 @@
+page_limit_body: 11
+body_font_pt: 10
+columns: 2
+font_family: Times
+anonymous: true
+engine: pdflatex
+bib_style: IEEEtranS
+cls: IEEEtran

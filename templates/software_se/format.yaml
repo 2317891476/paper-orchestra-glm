@@ -1,0 +1,8 @@
+page_limit_body: 6
+body_font_pt: null
+columns: 1
+font_family: CJK
+anonymous: false
+engine: xelatex
+bib_style: gbt7714-numerical
+cls: ctexart
