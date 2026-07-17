@@ -42,6 +42,23 @@ Number displayed equations with `\label{}` and reference via `\cref{}`.
 - Reference every figure/table in the text. Ensure legibility in grayscale.
 - acmart prefers single-column figures (`\begin{figure}`) unless a figure is genuinely wide.
 
+## Page Budget (section allocation)
+
+| Section | Pages |
+|---------|-------|
+| Abstract | 0.3 |
+| Introduction | 1.5 |
+| Background & Motivation | 1–1.5 |
+| Method / Architecture Design | 3–4 |
+| Implementation | 0.5–1 |
+| Evaluation Setup | 0.5–1 |
+| Results & Ablation | 3–4 |
+| Related Work | 0.5–1 |
+| Conclusion | 0.3 |
+| **Total** | **~11** |
+
+The outline and section-writing agents should use this budget to allocate content depth per section.
+
 ## Important Rules
 - Keep the acmart preamble unchanged; do not switch document class.
 - `\usepackage{booktabs}`, `multirow`, and `cleveref` are already loaded by this template.

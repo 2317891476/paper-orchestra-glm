@@ -30,6 +30,20 @@ test, HLS, ML for EDA, hardware security. Frame contributions toward CAD/automat
 - Reference every figure/table; grayscale-legible.
 - `\bibliographystyle{ACM-Reference-Format}`.
 
+## Page Budget (section allocation)
+
+| Section | Pages |
+|---------|-------|
+| Abstract | 0.2 |
+| Introduction | 0.5–0.8 |
+| Background & Motivation | 0.5 |
+| Method / Design | 1.5–2 |
+| Results & Ablation | 1.5–2 |
+| Conclusion | 0.2 |
+| **Total** | **~6** |
+
+The outline and section-writing agents should use this budget to allocate content depth per section.
+
 ## Important Rules
 - Keep the acmart preamble unchanged.
 - All `\begin`/`\end` pairs must match. Leave `\begin{acks}` commented out for submission.

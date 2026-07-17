@@ -18,7 +18,7 @@ ASPLOS reviewing is **double-blind** during review (the `anonymous` class option
 - In acmart, **abstract + `\keywords` come BEFORE `\maketitle`**.
 
 ## Paper Length
-Follow the ASPLOS 2026 CFP page limit (typically ~12 pages excl. references, but verify on the
+Follow the ASPLOS 2026 CFP page limit (typically 11 pages excl. references, but verify on the
 CFP). **List ALL authors** in every reference (no "et al."). No page limit for references.
 
 ## Figures and Tables
@@ -29,6 +29,23 @@ CFP). **List ALL authors** in every reference (no "et al."). No page limit for r
 ## Scope note
 ASPLOS spans architecture + compilers/PL + OS/runtime. Frame contributions to resonate across
 these communities (e.g., quantify both hardware-level and software-level benefits).
+
+## Page Budget (section allocation)
+
+| Section | Pages |
+|---------|-------|
+| Abstract | 0.3 |
+| Introduction | 1.5 |
+| Background & Motivation | 1–1.5 |
+| Method / Architecture Design | 3–4 |
+| Implementation | 0.5–1 |
+| Evaluation Setup | 0.5–1 |
+| Results & Ablation | 3–4 |
+| Related Work | 0.5–1 |
+| Conclusion | 0.3 |
+| **Total** | **~11** |
+
+The outline and section-writing agents should use this budget to allocate content depth per section.
 
 ## Important Rules
 - Keep the acmart preamble unchanged; do not switch document class or compress spacing.

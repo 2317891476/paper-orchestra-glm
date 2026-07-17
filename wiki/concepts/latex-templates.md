@@ -39,6 +39,22 @@
 discovery toward the target community. Edit to retarget. See
 [agent-literature-review](agent-literature-review.md).
 
+## Page budgets (`guidelines.md`)
+
+Every hardware-conf `guidelines.md` carries a `## Page Budget (section allocation)` table
+(inserted just before `## Important Rules`) that gives the outline and section-writing agents an
+explicit per-section depth target so generated papers hit the venue page limit.
+
+- **HPCA 2027 / ISCA 2026 / MICRO 2026 / ASPLOS 2026** share the **~11-page** budget: Abstract 0.3,
+  Introduction 1.5, Background & Motivation 1–1.5, Method / Architecture Design 3–4, Implementation
+  0.5–1, Evaluation Setup 0.5–1, Results & Ablation 3–4, Related Work 0.5–1, Conclusion 0.3.
+- **DAC 2026** uses a **~6-page** budget (6+1 format, 7th page refs only): Abstract 0.2, Introduction
+  0.5–0.8, Background & Motivation 0.5, Method / Design 1.5–2, Results & Ablation 1.5–2,
+  Conclusion 0.2.
+
+These are advisory allocations, not hard limits; the `## Paper Length` section remains authoritative
+for the total.
+
 ## Adding a new template
 
 1. Create `templates/<conf>/` with the 4 files (+ any `.sty`/`.cls`/`.bst`).
