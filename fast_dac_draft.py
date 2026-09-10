@@ -7,7 +7,7 @@ from methods.agents.section_writing_agent import SectionWritingAgent
 from utils.pdf_utils import compile_latex
 
 TEMPLATE = "templates/dac2026"
-MODEL = "glm-5.2"
+MODEL = "glm-5.3"
 CUTOFF = "2025-06"
 
 PAPERS = [

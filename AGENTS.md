@@ -33,7 +33,7 @@ wiki/                       # THIS PROJECT'S KNOWLEDGE BASE (see R1)
 
 ## Verified current configuration (re-check before relying on it)
 
-- `LLM_BACKEND=openai_compatible`, model `glm-5.2`, base URL = Zhipu coding endpoint.
+- `LLM_BACKEND=openai_compatible`, model `glm-5.3`, base URL = Zhipu coding endpoint.
 - Active template: `templates/hpca2027/` (IEEEtran, with `hpca-template.tex` header).
 - `pdflatex` / `bibtex` / `latexmk` installed system-wide (Ubuntu, Tsinghua mirror).
 

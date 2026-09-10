@@ -69,5 +69,5 @@ So each writer gets **concrete few-shot passages + sentence templates** for exac
 ## TODO / flesh out
 
 - [x] Sentence-level templates (ZeroStylus 2nd granularity) — implemented
-- [ ] Confirm glm-5.2 vision for the visual summary step
+- [ ] Confirm glm-5.3 vision for the visual summary step
 - [ ] Add a style-adherence signal to the autorater/refinement loop

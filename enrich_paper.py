@@ -29,7 +29,7 @@ from utils.llm_backend_utils import call_llm_with_text_prompt
 from utils.pdf_utils import compile_latex
 from utils.paper_search import search_papers, make_bib_entry, _make_key, _coerce_authors, _normalize_title
 
-MODEL = "glm-5.2"
+MODEL = "glm-5.3"
 
 NEED_PROMPT = """You are a senior researcher. Analyze the LaTeX paper below and find places that
 need citation support. Output a JSON list of search queries (strings) that would find relevant

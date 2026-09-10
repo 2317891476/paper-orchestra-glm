@@ -7,7 +7,7 @@ from utils.pdf_utils import compile_latex
 from utils.llm_backend_utils import call_llm_with_text_prompt
 
 TEMPLATE = "templates/dac2026"
-MODEL = "glm-5.2"
+MODEL = "glm-5.3"
 CUTOFF = "2025-06"
 CAP = 9000  # cap each concept file (chars) to bound context
 

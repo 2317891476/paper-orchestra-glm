@@ -18,7 +18,7 @@ Every file has inline guidance — open it and replace the placeholders.
 
 ## Run it
 
-Full pipeline (GLM-5.2, HPCA template):
+Full pipeline (GLM-5.3, HPCA template):
 
 ```bash
 cd /home/illya/PaperOrchestra
@@ -28,8 +28,8 @@ python paper_writing_cli.py \
   --raw_materials_dir ./my_paper \
   --latex_template_dir templates/hpca2027 \
   --output_dir ./paper_output_my \
-  --writer_model_name glm-5.2 \
-  --reflection_model_name glm-5.2 \
+  --writer_model_name glm-5.3 \
+  --reflection_model_name glm-5.3 \
   --research_cutoff 2025-06
 ```
 

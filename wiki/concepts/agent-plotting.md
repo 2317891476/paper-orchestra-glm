@@ -18,7 +18,7 @@ retrieve examples → predict content → style refine → generate visual → c
 ## CLI flags
 
 - `--use_plotting true`
-- `--plotting_model_name glm-5.2`
+- `--plotting_model_name glm-5.3`
 - `--image_model_name <vision model>`
 - `--plotting_max_critic_rounds 3`
 
@@ -26,9 +26,9 @@ retrieve examples → predict content → style refine → generate visual → c
 
 - The image-generation path currently leans on Gemini's image model; GLM/OpenAI-compatible
   image generation may need adaptation. **Verify before relying on this** (R1: not yet tested
-  with GLM-5.2 in this fork).
+  with GLM-5.3 in this fork).
 
 ## TODO / flesh out
 
-- [ ] Confirm plotting works end-to-end on GLM-5.2 (or document the gap)
+- [ ] Confirm plotting works end-to-end on GLM-5.3 (or document the gap)
 - [ ] Diagram vs plot generation paths

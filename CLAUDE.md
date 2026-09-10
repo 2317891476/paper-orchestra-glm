@@ -10,7 +10,7 @@ PaperOrchestra is a multi-agent framework that turns raw research materials
 Pipeline: **Outline → Literature Review → Section Writing → Content Refinement → PDF**.
 
 This fork adapts the original Google Research code to:
-- use **any OpenAI-compatible LLM** (GLM-5.2 by default) via `LLM_BACKEND` routing,
+- use **any OpenAI-compatible LLM** (GLM-5.3 by default) via `LLM_BACKEND` routing,
 - target **HPCA 2027** (with per-template venue targeting via `venues.md`),
 - compile locally with a system `pdflatex`.
 

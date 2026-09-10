@@ -1,10 +1,10 @@
 """Translate the English DAC drafts to readable Chinese PDFs.
-glm-5.2 translates the LaTeX body; we inject xeCJK (-> auto xelatex) and compile."""
+glm-5.3 translates the LaTeX body; we inject xeCJK (-> auto xelatex) and compile."""
 import os, shutil, re
 from utils.llm_backend_utils import call_llm_with_text_prompt
 from utils.pdf_utils import compile_latex
 
-MODEL = "glm-5.2"
+MODEL = "glm-5.3"
 PAPERS = ["hirca", "buglens"]
 
 PROMPT = """你是专业学术翻译。把下面这份英文 LaTeX 源码中的**英文文字翻译成简体中文**，输出**完整可编译的 .tex 文件**。

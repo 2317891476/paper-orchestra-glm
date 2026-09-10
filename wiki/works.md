@@ -1,6 +1,6 @@
 # Generated Works — Catalog
 
-Papers produced with this fork of PaperOrchestra (GLM-5.2 backend). Each entry lists the target
+Papers produced with this fork of PaperOrchestra (GLM-5.3 backend). Each entry lists the target
 venue/template, source materials, and output paths. All outputs are local (gitignored).
 
 > Paths are relative to the repo root (`/home/illya/PaperOrchestra/`).
@@ -13,7 +13,7 @@ venue/template, source materials, and output paths. All outputs are local (gitig
 - **Template / venue**: `templates/hpca2027/` (IEEEtran, HPCA 2027)
 - **Source**: `raw_material/` (idea_sparse.md + experimental_log.md, LLM-driven pre-silicon HW verification)
 - **Outputs**:
-  - `paper_output_bughypo_full/final_paper.pdf` — EN, 6p (canonical; GLM-5.2 full run)
+  - `paper_output_bughypo_full/final_paper.pdf` — EN, 6p (canonical; GLM-5.3 full run)
   - `paper_output_bughypo/final_paper.pdf` — EN, 4p (early GLM-5.1 run; superseded)
 - **Notes**: First end-to-end run; local refs + venue targeting validated here. Title/abstract once
   broken by preamble loss → fixed via the section-agent safety net.
@@ -78,7 +78,7 @@ conda activate paper_orchestra
 # e.g. re-run G10 end-to-end:
 python paper_writing_cli.py --raw_materials_dir ./g10_paper \
   --latex_template_dir templates/micro2026 --output_dir ./paper_output_g10 \
-  --writer_model_name glm-5.2 --reflection_model_name glm-5.2
+  --writer_model_name glm-5.3 --reflection_model_name glm-5.3
 # fast DAC draft (no literature): see fast_dac_draft.py
 # Chinese translation of a draft: see translate_to_chinese.py
 ```

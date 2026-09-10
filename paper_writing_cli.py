@@ -51,12 +51,12 @@ def main():
     )
     parser.add_argument(
         "--writer_model_name",
-        default="glm-5.2",
+        default="glm-5.3",
         help="LLM for writer and literature agents.",
     )
     parser.add_argument(
         "--reflection_model_name",
-        default="glm-5.2",
+        default="glm-5.3",
         help="LLM for reflection agents.",
     )
     parser.add_argument(
@@ -104,7 +104,7 @@ def main():
     )
     parser.add_argument(
         "--plotting_model_name",
-        default="glm-5.2",
+        default="glm-5.3",
         help="LLM for the plotting agent.",
     )
     parser.add_argument(

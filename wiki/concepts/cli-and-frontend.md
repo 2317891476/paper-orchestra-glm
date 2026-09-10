@@ -12,11 +12,11 @@ Key flags (defaults reflect this fork):
 | `--raw_materials_dir` | (required) | must contain `idea_sparse.md`, `experimental_log.md` |
 | `--latex_template_dir` | (required) | e.g. `templates/hpca2027` |
 | `--output_dir` | auto-timestamp | raw_materials are copied in |
-| `--writer_model_name` | `glm-5.2` | writer + literature |
-| `--reflection_model_name` | `glm-5.2` | refinement reviewer |
+| `--writer_model_name` | `glm-5.3` | writer + literature |
+| `--reflection_model_name` | `glm-5.3` | refinement reviewer |
 | `--research_cutoff` | current `YYYY-MM` | literature cutoff |
 | `--use_plotting` | `false` | enable PlottingAgent |
-| `--plotting_model_name` | `glm-5.2` | |
+| `--plotting_model_name` | `glm-5.3` | |
 | `--image_model_name` | gemini image | vision for plotting |
 | `--local_references_dir` | auto (`<raw>/references/`) | user PDF/.bib, always-citable ([local-references](local-references.md)) |
 | `--style_references_dir` | auto (`<raw>/style_references/`) | best-paper PDFs for style learning |

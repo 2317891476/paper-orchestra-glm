@@ -36,11 +36,11 @@ LLM_BACKEND=gemini             → ALL models → Gemini path
 LLM_BACKEND=auto (default)     → model name has gpt/o1/o3 → OpenAI; else Gemini
 ```
 
-> ⚠️ In `auto`, `glm-5.2` would wrongly route to Gemini. **Set `LLM_BACKEND=openai_compatible`.**
+> ⚠️ In `auto`, `glm-5.3` would wrongly route to Gemini. **Set `LLM_BACKEND=openai_compatible`.**
 
 ## Default model
 
-`paper_writing_cli.py` defaults: `--writer_model_name glm-5.2`, `--reflection_model_name glm-5.2`.
+`paper_writing_cli.py` defaults: `--writer_model_name glm-5.3`, `--reflection_model_name glm-5.3`.
 
 ## Notes / gotchas
 

@@ -1,7 +1,7 @@
 # PaperOrchestra Wiki — Index
 
 > Personal fork of [google-research/paper-orchestra](https://github.com/google-research/paper-orchestra).
-> This fork: **GLM-5.2** backend + **HPCA 2027** target + local LaTeX compile.
+> This fork: **GLM-5.3** backend + **HPCA 2027** target + local LaTeX compile.
 > See `CLAUDE.md` / `AGENTS.md` for the **R1 wiki-sync rule** that governs this wiki.
 
 ## Cheat sheet
@@ -10,13 +10,13 @@
 # Activate env
 conda activate paper_orchestra
 
-# Run the full pipeline (GLM-5.2, HPCA)
+# Run the full pipeline (GLM-5.3, HPCA)
 python paper_writing_cli.py \
   --raw_materials_dir ./raw_material \
   --latex_template_dir templates/hpca2027 \
   --output_dir ./paper_output \
-  --writer_model_name glm-5.2 \
-  --reflection_model_name glm-5.2 \
+  --writer_model_name glm-5.3 \
+  --reflection_model_name glm-5.3 \
   --research_cutoff 2025-06
 ```
 
@@ -76,7 +76,7 @@ python paper_writing_cli.py \
 - **2026-06** — Added `templates/micro2026/` (ACM `acmart` MICRO template) + `my_paper/` example input folder.
 - **2026-06** — Added per-stage runner (`--stages` / `--from_stage`, resume-safe) to run/iterate individual pipeline stages.
 - **2026-06** — Added **local references** (PDF + .bib, always-citable, `is_local` flag) and **StyleAgent** (Step 1.5, text+visual style guide from best papers); both optional, CLI-flagged.
-- **2026-06** — Fork adapted to GLM-5.2 (OpenAI-compatible backend, `LLM_BACKEND` routing, lazy clients).
+- **2026-06** — Fork adapted to GLM-5.3 (OpenAI-compatible backend, `LLM_BACKEND` routing, lazy clients).
 - **2026-06** — Added `templates/hpca2027/` with `venues.md` conference-specific literature targeting.
 - **2026-06** — Made all prompts domain-neutral; domains now live in `guidelines.md` + `venues.md`.
 - **2026-06** — Added preamble-safety-net to SectionWritingAgent; added `booktabs`/`multirow` to HPCA template.
