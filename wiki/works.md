@@ -1,6 +1,6 @@
 # Generated Works — Catalog
 
-Papers generated with this fork of PaperOrchestra (GLM-5.2). Each entry lists the target
+Papers produced with this fork of PaperOrchestra (GLM-5.2 backend). Each entry lists the target
 venue/template, source materials, and output paths. All outputs are local (gitignored).
 
 > Paths are relative to the repo root (`/home/illya/PaperOrchestra/`).
@@ -52,6 +52,17 @@ venue/template, source materials, and output paths. All outputs are local (gitig
   - `paper_output_buglens/final_paper.pdf` — EN, 9p
   - `paper_output_buglens/final_paper_zh.pdf` — ZH, 7p
 - **Notes**: Same fast-draft flow as SoC-HiRCA; semantic-scaffolding + generate-and-critique method.
+
+## 6. LogicBranch — Energy-Efficient Branch Prediction (TACO)
+
+- **Template / venue**: `templates/taco/` (acmart acmsmall, TACO journal)
+- **Source**: `LogicBranch_rjx_chenshuang/` (complete original paper by Ren et al., NUDT)
+- **Output**: `paper_output_logicbranch/final_paper.pdf` — EN, 18p
+- **Notes**: **Direct format conversion** (not pipeline-regenerated). Original paper was in
+  `sigconf` (conference) format; converted to TACO journal format (`acmsmall,review,anonymous`).
+  Fixed: fonts (Latin Modern → Libertine via texlive-fonts-extra), 2 damaged PDFs (IPC/MPKI),
+  image paths (`picture/` → `figures/`). Authors: Jingxiang Ren, Tiejun Li, et al. (NUDT).
+  63 cites / 152 bib entries / 15 figures.
 
 ---
 

@@ -20,4 +20,7 @@ LLM-StaticBugLens*.md
 
 # Local throwaway scripts
 /fix_and_recompile.py
-/test_*.pyLogicBranch_rjx_chenshuang/
+/test_*.py
+
+# Personal paper source materials (input, not part of the tool)
+LogicBranch_rjx_chenshuang/
