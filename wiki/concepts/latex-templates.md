@@ -27,6 +27,9 @@
 - `templates/dac2026/` — **ACM `acmart`** (`sigconf, anonymous, review`); DAC 2026. EDA-focused.
 - `templates/taco/` — **ACM `acmart`** (`acmsmall, manuscript, review, anonymous`); TACO journal
   (~20-page body). XeLaTeX (`acmsmall` needs scalable fonts). CCS concepts. Journal-depth sections.
+- `templates/fse2026/` — **ACM `acmart` PACMSE** (`manuscript,review,anonymous`); FSE 2026.
+  Single-column journal format, 18p body + 4p refs. SE-focused sections (RQs, threats to
+  validity). Loads algorithm/listings. XeLaTeX.
 - `templates/software_se/` — **中文综述** (`ctexart`, XeLaTeX, A4 single-column); "前瞻科技" journal
   style. Survey structure (引言 / 国内外研究进展 / 关键技术挑战 / 发展趋势与建议 / 结束语);
   **GB/T 7714** bibliography format (`\usepackage[numbers,super]{gbt7714}` +

@@ -1,0 +1,104 @@
+% !TeX program = xelatex
+%% FSE 2026 submission skeleton (ACM PACMSE format — single-column journal style).
+%% FSE 2026 uses PACMSE (Proceedings of the ACM on Software Engineering) format.
+%% 18 pages single-column + 4 pages references. Double-anonymous review.
+\documentclass[manuscript,review,anonymous]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{Bib\TeX}}}
+
+\setcopyright{acmlicensed}
+\copyrightyear{2026}
+\acmYear{2026}
+\acmDOI{XXXXXXX.XXXXXXX}
+
+\settopmatter{printfolios=true}
+\settopmatter{printacmref=false}
+
+%% Extra packages the Section agent relies on (tables, algorithms, cross-refs).
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  language=Java
+}
+
+%% In acmart, abstract + keywords come BEFORE \maketitle.
+\begin{document}
+
+%%%%%%%%% TITLE %%%%%%%%%
+\title{My Title}
+
+\begin{abstract}
+%%%%%%%%% ABSTRACT %%%%%%%%%
+Abstract here.
+%%%%%%%%% ABSTRACT %%%%%%%%%
+\end{abstract}
+
+\keywords{software engineering, empirical study, tools}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+Introduction here.
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+
+\section{Background and Related Work}
+\label{sec:background}
+%%%%%%%%% BACKGROUND %%%%%%%%%
+Background and related work here.
+%%%%%%%%% BACKGROUND %%%%%%%%%
+
+\section{Approach}
+\label{sec:approach}
+%%%%%%%%% APPROACH %%%%%%%%%
+Approach / methodology here.
+%%%%%%%%% APPROACH %%%%%%%%%
+
+\section{Study Design}
+\label{sec:design}
+%%%%%%%%% STUDY DESIGN %%%%%%%%%
+Empirical study design / experimental setup here.
+%%%%%%%%% STUDY DESIGN %%%%%%%%%
+
+\section{Results and Analysis}
+\label{sec:results}
+%%%%%%%%% RESULTS %%%%%%%%%
+Results and analysis here.
+%%%%%%%%% RESULTS %%%%%%%%%
+
+\section{Discussion}
+\label{sec:discussion}
+%%%%%%%%% DISCUSSION %%%%%%%%%
+Discussion, implications, threats to validity here.
+%%%%%%%%% DISCUSSION %%%%%%%%%
+
+\section{Related Work}
+\label{sec:related}
+%%%%%%%%% RELATED WORK %%%%%%%%%
+Related work here.
+%%%%%%%%% RELATED WORK %%%%%%%%%
+
+\section{Conclusion}
+\label{sec:conclusion}
+%%%%%%%%% CONCLUSION %%%%%%%%%
+Conclusion here.
+%%%%%%%%% CONCLUSION %%%%%%%%%
+
+%% Double-anonymous: no acknowledgments.
+% \begin{acks}
+% \end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
