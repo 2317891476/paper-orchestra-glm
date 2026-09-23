@@ -41,6 +41,35 @@ AGENT_REVIEW_RUBRICS = (
 # --- PROMPT GENERATORS ---
 
 
+VERDICT_DIMENSIONS = [
+    "Contribution",
+    "Writing_Clarity",
+    "Experimental_Strength",
+    "Evaluation_Completeness",
+    "Method_Soundness",
+]
+_VERDICT_VALUES = {"pass", "needs_revision", "needs_new_experiment"}
+
+
+def normalize_verdicts(review: dict) -> dict:
+    """Coerce the LLM's "Verdicts" field to the allowed tri-state values,
+    dropping anything malformed (adapted from Research-Paper-Writing-Skills'
+    5-dimension rejection-risk checklist, MIT)."""
+    if not isinstance(review, dict):
+        return review
+    v = review.get("Verdicts")
+    if isinstance(v, dict):
+        clean = {}
+        for dim in VERDICT_DIMENSIONS:
+            val = str(v.get(dim, "")).strip().lower().replace(" ", "_").replace("-", "_")
+            if val in _VERDICT_VALUES:
+                clean[dim] = val
+        review["Verdicts"] = clean
+    else:
+        review.pop("Verdicts", None)
+    return review
+
+
 def get_agentreview_system_prompt(
     is_knowledgeable=True, is_responsible=True, is_benign=True
 ):
@@ -101,6 +130,13 @@ In <JSON>, provide the review in JSON format with the following fields in the or
 - "Soundness": A rating from 1 to 4 (poor, fair, good, excellent).
 - "Presentation": A rating from 1 to 4 (poor, fair, good, excellent).
 - "Contribution": A rating from 1 to 4 (poor, fair, good, excellent).
+- "Verdicts": For each of the five rejection-risk dimensions below, a verdict that MUST be exactly one of "pass", "needs_revision", or "needs_new_experiment":
+  * "Contribution": is the new knowledge meaningful and non-obvious (not a trivial/common failure case, not a predictable improvement)?
+  * "Writing_Clarity": is the method reproducible from the paper, every module motivated, terminology consistent?
+  * "Experimental_Strength": are gains over strong baselines meaningful and consistent, absolute performance competitive, failure cases reported honestly?
+  * "Evaluation_Completeness": ablations for every key design choice, all strong/recent baselines under fair settings, standard metrics, challenging datasets?
+  * "Method_Soundness": realistic setting, no hidden flaws/unreasonable assumptions, robust without per-case tuning, benefits outweigh added limitations?
+  Ground each verdict in the paper's own content; "needs_new_experiment" marks gaps only new experiments can close.
 - "Overall": A rating from 1 to 10 (very strong reject to award quality).
 - "Confidence": A rating from 1 to 5 (low, medium, high, very high, absolute).
 - "Decision": A decision that has to be one of the following: Accept, Reject.
@@ -142,7 +178,7 @@ Here is the paper you are asked to review:
                     "system_instruction": reviewer_system_prompt,
                 },
             )
-            parsed_reviews.append(response["parsed_response"])
+            parsed_reviews.append(normalize_verdicts(response["parsed_response"]))
         review = get_meta_review(model_name, temperature, parsed_reviews)
         if review is None:
             review = parsed_reviews[0]
@@ -168,6 +204,16 @@ Here is the paper you are asked to review:
                         pass
             if scores:
                 review[score] = int(round(np.mean(scores)))
+        # Majority vote on the tri-state verdicts across ensemble members.
+        from collections import Counter
+        votes = {}
+        for dim in VERDICT_DIMENSIONS:
+            vals = [r.get("Verdicts", {}).get(dim) for r in parsed_reviews
+                    if isinstance(r.get("Verdicts"), dict) and r["Verdicts"].get(dim)]
+            if vals:
+                votes[dim] = Counter(vals).most_common(1)[0][0]
+        if votes:
+            review["Verdicts"] = votes
     else:
         response = call_gemini_with_text_prompt(
             prompt=base_prompt,
@@ -177,7 +223,7 @@ Here is the paper you are asked to review:
                 "system_instruction": reviewer_system_prompt,
             },
         )
-        review = response["parsed_response"]
+        review = normalize_verdicts(response["parsed_response"])
     return review
 
 

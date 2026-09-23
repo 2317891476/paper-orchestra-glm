@@ -350,6 +350,24 @@ def check_overfull(lw, pdf, spec):
             "status": "WARN" if any(v > 20 for v in vals) else "PASS"}
 
 
+def check_tables(lw, pdf, spec):
+    """Table style: booktabs over \\hline grids (Research-Paper-Writing-Skills
+    hard rule: caption above, no vertical rules, minimal horizontal rules)."""
+    tex = _read(_resolve_tex(lw))
+    tables = len(re.findall(r"\\begin\{tabular\*?\}", tex))
+    hlines = len(re.findall(r"\\hline\b", tex))
+    booktabs = len(re.findall(r"\\(?:toprule|midrule|bottomrule|cmidrule)", tex))
+    issues = []
+    if tables and hlines and not booktabs:
+        issues.append(f"{tables} table(s) use \\hline only — switch to booktabs "
+                      f"(\\toprule/\\midrule/\\bottomrule)")
+    elif tables and hlines > 5 and hlines >= 2 * max(1, booktabs):
+        issues.append(f"\\hline-dense tables ({hlines} hlines vs {booktabs} booktabs "
+                      f"rules) — rules should separate groups, not rows")
+    return {"tables": tables, "hlines": hlines, "booktabs": booktabs,
+            "issues": issues, "status": "WARN" if issues else "PASS"}
+
+
 # ── runner ───────────────────────────────────────────────────────────────────
 
 CHECKS = [
@@ -364,6 +382,7 @@ CHECKS = [
     ("Figures",       check_figures),
     ("Anonymity",     check_anonymity),
     ("Overfull",      check_overfull),
+    ("Tables",        check_tables),
 ]
 
 

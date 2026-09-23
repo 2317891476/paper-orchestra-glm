@@ -61,6 +61,23 @@ plus the conference guidelines, and asks for the **same JSON schema** — so the
 downstream `has_issues` / fix-iteration logic is unchanged. Issues must be
 grounded in a signal; the model is told not to invent problems.
 
+## Claim–evidence alignment audit (`_claim_evidence_check`)
+
+After compression, the final Abstract + Introduction are audited
+(hard rule adapted from Research-Paper-Writing-Skills, MIT): every **major
+claim** must map to evidence, else be flagged. Output:
+`work_dir/claim_evidence_map.json` with
+`{claim, evidence, status}` where status ∈ `supported` (reported result) /
+`supported_by_design` (design/registered-report papers: claim about the
+artifact or protocol itself) / `needs_evidence`.
+
+- Report-only: it never blocks or rewrites the paper — it makes the paper's
+  evidential debt explicit (e.g. TRACE-RTL final: 10 claims → 5
+  supported_by_design + 5 needs_evidence, matching the paper's own
+  "no empirical results are claimed" stance).
+- One LLM call through `_llm_call_with_deadline` (thinking disabled); any
+  failure → skip silently.
+
 ## Page-budget compression (`_compress_to_page_budget`)
 
 After the formatting loop, the agent enforces the venue's length limit:
@@ -150,6 +167,12 @@ asking for a rewrite:
 Verified on the 39KB Approach section: 38986 → 22225 chars (57%) with all
 17 labels intact, 4.2 s. The result is checkpointed through the normal
 section-wise path (`[delete-protocol]` log tag).
+
+Both compression prompts (rewrite and delete-choice) embed
+**reverse-outlining** criteria (2026-09-23, from
+Research-Paper-Writing-Skills, MIT): a paragraph is redundant when its
+message — its first sentence — duplicates another paragraph's; surviving
+paragraphs must carry exactly one message stated up front.
 
 ## Notes / gotchas
 

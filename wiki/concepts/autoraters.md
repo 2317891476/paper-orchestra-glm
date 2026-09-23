@@ -22,6 +22,22 @@
   (was hardcoded Gemini → caused 0.0 scores with GLM). See R1.1.
 - Prompts made domain-neutral ("top-tier conferences in the target field").
 
+## Tri-state verdicts (added 2026-09-23)
+
+Alongside the numeric scores, reviews now carry a `Verdicts` object with five
+rejection-risk dimensions (adapted from
+[Research-Paper-Writing-Skills](https://github.com/Master-cai/Research-Paper-Writing-Skills),
+MIT): `Contribution`, `Writing_Clarity`, `Experimental_Strength`,
+`Evaluation_Completeness`, `Method_Soundness` — each exactly one of
+`pass` / `needs_revision` / `needs_new_experiment` (the last marks gaps only
+new experiments can close).
+
+- `normalize_verdicts(review)` coerces raw LLM output to the allowed values
+  and drops malformed dimensions; applied to every review and the meta-review.
+- Ensemble mode: majority vote per dimension across the N reviewers.
+- The refinement loop's score gate still uses the numeric axes; verdicts are
+  advisory signal (surfaced in review JSON / worklogs).
+
 ## Notes / gotchas
 
 - `Overall` is the score the refinement loop optimizes (0–10).

@@ -38,6 +38,31 @@ to "return the full template". This produces a PDF with body text but **no title
 - Only raster figures (`.png/.jpg`) are passed to the VLM; PDFs are skipped.
 - Prompt enforces `booktabs` table style → template must load `booktabs`.
 
+## Narrative craft in the prompt (added 2026-09-23)
+
+The prompt now carries a `4b. Narrative Craft` block, adapted from
+[Research-Paper-Writing-Skills](https://github.com/Master-cai/Research-Paper-Writing-Skills)
+(MIT; knowledge source: Prof. Peng Sida's open notes — attribution kept per
+license). What it adds beyond the original instructions:
+
+- **Introduction logic chain** (each link explicit): task & importance → target
+  metrics → why SOTA falls short → **root technical cause** (challenge =
+  limitation + technical reason) → our approach → why it works in essence →
+  additional contributions. Drafting starts from the *backward* questions
+  (what problem, why no established solution, what exactly is the contribution).
+- **Anti-incremental-patch rule**: never present a naive baseline and then
+  pitch our method as an improvement over it — organize prior methods around
+  the challenge WE solve; also no hiding concrete design behind buzzwords.
+- **Method module triad**: every module subsection = Motivation (problem-driven)
+  → Module design (structures + input→steps→output forward process) →
+  Technical advantage (tied to measurable behavior); Overview subsection maps
+  the section.
+- **Related Work by technical topic** (not by year), each topic ending in our
+  distinction — no citation dumps.
+- **Paragraph discipline**: one paragraph = one message, stated in the first
+  sentence; explicit sentence-to-sentence relations; stable terminology.
+
+
 ## TODO / flesh out
 
 - [ ] `figures/info.json` schema

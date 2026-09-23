@@ -57,6 +57,26 @@ CRITICAL INSTRUCTIONS:
    - Nice to have: discuss the limitation and future work at the end.
    - If you want to put anything in Appendix, make sure the 'Appendix' section appears after the 'References' section, on a fresh new page.
 
+4b. Narrative Craft (adapted from Peng Sida's open writing notes via Research-Paper-Writing-Skills, MIT):
+
+   Introduction — build it on this logic chain, each link explicit:
+   task & its importance -> which metrics the task should improve -> why current/SOTA methods fall short of those metrics -> the ROOT technical cause of that failure (a challenge = limitation + technical reason) -> our approach -> WHY the approach works in essence -> additional contributions.
+   Before drafting, answer backward: (1) what technical problem do we solve and why is no established solution available? (2) what exactly is the contribution (new task / metric / problem / technique)? (3) why does it work in essence, and what new insight does it bring? Then write forward along the chain.
+   ANTI-PATTERN (do not violate): never present a naive baseline first and then describe our method as an improvement over it — that framing makes the work look like an incremental patch and kills reader curiosity, even when the work IS incremental. Instead, organize prior methods around the technical challenge WE solve, and let the challenge (not a strawman baseline) carry the motivation. Do not hide concrete method design behind abstract buzzwords either: state the core contribution implementation clearly.
+
+   Method — every module subsection carries three elements in this order:
+   (1) Motivation: problem-driven — "because problem X exists, we design module Y"; tied to the challenge chain above.
+   (2) Module design: define the key structures (representation / data structure / hardware or software mechanism), then the forward process in strict execution order: given [input], first ... then ... finally ..., producing [output].
+   (3) Technical advantage: why this beats alternatives, tied to measurable behavior (latency, area, power, accuracy, coverage) where possible.
+   Start the Method section with an Overview subsection: 1-2 sentences of setting, 1-2 sentences of the core contribution, a pointer to the pipeline figure if one exists, and a map of what each subsection covers.
+
+   Related Work — group literature by technical topic (NOT by publication year); per topic: common paradigm -> key limitation tied to OUR challenge -> our distinction. Never a citation dump, never hide the strongest baselines.
+
+   Paragraph discipline (all sections):
+   - One paragraph carries exactly ONE message, stated in its first sentence.
+   - Each sentence connects to the previous by a clear relation (cause, contrast, consequence, refinement, example).
+   - Keep terminology stable across the whole paper: one concept, one name.
+
 5. Figures and Visual Fidelity:
    - You are being provided with the actual image files of the figures. You MUST describe them faithfully and accurately. DO NOT hallucinate interpretations that contradict the visual evidence in the plots.
    - Make sure to use ALL of the figures provided in 'figures_list'. Note: figures are stored in the 'figures/' subdirectory. IMPORTANT: use the exact filenames including their extensions (e.g., .png) in your \\includegraphics commands.

@@ -490,7 +490,7 @@ Respond in JSON format:
 Paragraph index listing ([S] = STRUCTURAL: headings, labels, floats, equations — MUST be kept):
 {chr(10).join(listing)}
 
-Choose whole non-structural paragraphs to DELETE: ones that repeat content covered elsewhere, restate motivation or the abstract, or elaborate minor details. Roughly {k_guess} paragraph deletions are needed — gentle rewording is NOT an option. Losing a citation that appears only inside a deleted motivational paragraph is acceptable.
+Choose whole non-structural paragraphs to DELETE. Rank by reverse-outlining: a paragraph is redundant when its message (its first sentence) is already carried by another paragraph, when it restates motivation or the abstract, or when it only elaborates minor detail. Roughly {k_guess} paragraph deletions are needed — gentle rewording is NOT an option. Losing a citation that appears only inside a deleted motivational paragraph is acceptable.
 
 Reply ONLY with JSON, no other text: {{"delete": [paragraph indices]}}"""
             try:
@@ -591,8 +591,9 @@ Rules (STRICT):
 1. PRESERVE every technical claim, definition, research question, \\cite, \\label and \\ref in this section.
 2. To reach the limit, DELETE whole paragraphs that repeat points, restate the abstract, or give motivational background — deleting redundancy is expected, gentle rewording is NOT enough.
 3. Merge overlapping paragraphs; tighten verbose phrasing; convert enumerations to compact prose.
-4. Do NOT delete the section, do NOT add new content, figures or tables, and do NOT touch any LaTeX markup you don't show (labels/refs must survive verbatim).
-5. Output ONLY the compressed LaTeX for this section (from its \\section line to its end), no commentary, no code fences.
+4. Reverse-outline as you cut: every paragraph that survives must carry exactly ONE message, stated in its first sentence; if a paragraph's opening sentence doesn't state its message, replace it with the topic sentence while tightening. Drop any paragraph whose message is already carried by another.
+5. Do NOT delete the section, do NOT add new content, figures or tables, and do NOT touch any LaTeX markup you don't show (labels/refs must survive verbatim).
+6. Output ONLY the compressed LaTeX for this section (from its \\section line to its end), no commentary, no code fences.
 
 LaTeX source:
 {sec}
@@ -851,6 +852,71 @@ Output the FULL revised LaTeX document (from \\documentclass to \\end{{document}
 
         print(f" >> [Length] Compression finished at {pages} pages (limit {limit} body).")
         return pdf_path
+
+    def _claim_evidence_check(self) -> list:
+        """Claim–evidence alignment audit of the final Abstract/Introduction.
+
+        Every major claim in Abstract/Intro must map to evidence (reported
+        results, or — for design/registered-report papers — the completed
+        artifact/protocol), else be marked needs_evidence. Adapted from the
+        Research-Paper-Writing-Skills hard rule (MIT; source: Peng Sida's
+        notes). Produces work_dir/claim_evidence_map.json; returns the parsed
+        list (empty on any failure — the check never blocks the pipeline).
+        """
+        import re
+
+        # Abstract + Introduction only: where unsupported claims do damage.
+        scope = ""
+        m_abs = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}",
+                          self.current_tex, re.DOTALL)
+        if m_abs:
+            scope += m_abs.group(1)
+        parts = re.split(r"(?m)(?=\\section\{)", self.current_tex, maxsplit=0)
+        for p in parts[1:]:
+            if p.startswith("\\section{Introduction}"):
+                scope += "\n" + p
+                break
+        if len(scope) < 100:
+            print(" >> [ClaimCheck] no abstract/introduction found; skipping.")
+            return []
+
+        prompt = f"""You audit claim-evidence alignment for a research paper. Below are its Abstract and Introduction.
+
+List every MAJOR claim (effectiveness, superiority, generality, novelty, or a strong property the paper asserts). For each, map it to the evidence that exists IN THE PAPER:
+- "supported": a reported experimental result, table, or measurement backs it;
+- "supported_by_design": for design/protocol papers — the claim is about the artifact or pre-registered plan itself (e.g. "the protocol is frozen"), not about effectiveness;
+- "needs_evidence": no evidence in the paper backs the claim (e.g. an effectiveness claim with no experiments).
+
+Be strict: an effectiveness claim with no reported numbers is needs_evidence, even if plausible. Quote claims close to the original wording.
+
+Reply ONLY with JSON: {{"claims": [{{"claim": "...", "evidence": "...", "status": "supported | supported_by_design | needs_evidence"}}]}}
+
+--- ABSTRACT + INTRODUCTION ---
+{scope}
+"""
+        try:
+            resp = self._llm_call_with_deadline(prompt, timeout_sec=240)
+            raw = resp["raw_response"]
+            m = re.search(r"\{.*\}", raw, re.DOTALL)
+            claims = json.loads(m.group(0)).get("claims", []) if m else []
+        except Exception as e:
+            print(f" >> [ClaimCheck] failed ({e}); skipping.")
+            return []
+
+        valid = {"supported", "supported_by_design", "needs_evidence"}
+        claims = [c for c in claims
+                  if isinstance(c, dict) and c.get("status") in valid and c.get("claim")]
+        with open(os.path.join(self.work_dir, "claim_evidence_map.json"), "w",
+                  encoding="utf-8") as f:
+            json.dump(claims, f, indent=2, ensure_ascii=False)
+
+        n_need = sum(1 for c in claims if c["status"] == "needs_evidence")
+        print(f" >> [ClaimCheck] {len(claims)} major claims audited; "
+              f"{n_need} need evidence (see claim_evidence_map.json).")
+        for c in claims:
+            if c["status"] == "needs_evidence":
+                print(f"    ⚠ needs evidence: {c['claim'][:100]}")
+        return claims
 
     def _extract_scores(self, review: dict) -> dict:
         """Extracts numerical scores from the review dictionary for comparison."""
@@ -1245,6 +1311,9 @@ block.
 
         # --- Page-budget compression (length control) ------------------------
         final_valid_pdf_path = self._compress_to_page_budget(final_valid_pdf_path)
+
+        # --- Claim-evidence alignment audit (final tex) -----------------------
+        self._claim_evidence_check()
 
         # Save Final Output
         final_pdf_output_path = os.path.join(self.work_dir, "final_refined_paper.pdf")
