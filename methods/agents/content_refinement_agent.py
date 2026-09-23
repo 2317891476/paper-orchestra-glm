@@ -853,6 +853,111 @@ Output the FULL revised LaTeX document (from \\documentclass to \\end{{document}
         print(f" >> [Length] Compression finished at {pages} pages (limit {limit} body).")
         return pdf_path
 
+    def _anti_slop_polish(self, pdf_path: str) -> str:
+        """One wording-only pass removing stereotyped LLM patterns
+        (pattern catalogue from Wikipedia 'Signs of AI writing' via
+        claude-scholar's writing-anti-ai, MIT). Reuses the section-wise
+        machinery: split + checkpoints + deadline; gates require every
+        cite/label/section/environment to survive and length to stay within
+        [0.5, 1.05]x. Accept only if the compile is complete and page count
+        did not increase; on any failure keep the original (fail-safe)."""
+        import hashlib
+        import re as _re
+
+        tex = self.current_tex
+        parts = _re.split(r"(?m)(?=\\section\{)", tex, maxsplit=0)
+        if len(parts) < 2:
+            return pdf_path
+        tail = ""
+        m = _re.search(r"(?m)^\\bibliographystyle\{", parts[-1])
+        if m:
+            tail = parts[-1][m.start():]
+            parts[-1] = parts[-1][: m.start()]
+
+        def _counts(t):
+            return (
+                len(_re.findall(r"\\cite", t)),
+                sorted(_re.findall(r"\\label\{([^}]*)\}", t)),
+                len(_re.findall(r"\\begin\{", t)),
+            )
+
+        prompt_tpl = """Remove stereotyped AI-writing patterns from this LaTeX section — wording ONLY.
+
+Patterns to eliminate:
+- Buzzwords/filler: "delve", "crucial", "landscape", "Moreover", "Furthermore", "Additionally", "Notably", "It is worth noting", "It is important to note", "plays a crucial/pivotal role", "stands as a testament", "paves the way", "seamless(ly)", "holistic(ally)", "paradigm shift", "highlights/underscores the importance".
+- Negative parallelism: "not just X, but Y" -> state X's actual effect directly.
+- Promotional/vague: "experts believe", "significant advancement" without specifics -> concrete statement or delete.
+- Em-dash overuse: replace "X --- Y" with commas or separate sentences where natural.
+- Intensifiers/hedges: "very", "quite", "extremely", "essentially", "basically"; "may/can" unless genuinely uncertain.
+- Nominalizations: "we perform an analysis of" -> "we analyze".
+
+HARD constraints:
+1. Keep the section's structure, every \\cite, \\label, \\ref, equation, figure and table EXACTLY as they are.
+2. Do not change any technical claim, number, or term; do not add content.
+3. Output length must be within ±5% of the input (this is a rewording, not a cut).
+4. Output ONLY the rewritten LaTeX section, no commentary, no code fences.
+
+LaTeX source:
+{sec}
+"""
+        out_parts, polished = [], 0
+        for idx, sec in enumerate(parts):
+            h = hashlib.md5(sec.encode("utf-8")).hexdigest()[:10]
+            ck = os.path.join(self.work_dir, f"antislop_{h}_{idx:02d}.tex")
+            if os.path.exists(ck):
+                out_parts.append(open(ck, encoding="utf-8").read())
+                polished += 1
+                continue
+            try:
+                resp = self._llm_call_with_deadline(
+                    prompt_tpl.format(sec=sec), timeout_sec=240
+                )
+            except Exception as e:
+                print(f" >> [AntiSlop] part {idx} call failed ({e}); keeping original")
+                out_parts.append(sec)
+                continue
+            raw = resp["raw_response"].strip()
+            if "```" in raw:
+                raw = raw.split("```latex")[-1].split("```")[0].strip()
+            c_src, c_out = _counts(sec), _counts(raw)
+            good = (
+                c_src == c_out
+                and 0.5 * len(sec) < len(raw) < 1.05 * len(sec)
+                and (idx == 0 or raw.startswith("\\section"))
+            )
+            if not good:
+                print(f" >> [AntiSlop] part {idx} rejected by gate; keeping original")
+                out_parts.append(sec)
+                continue
+            with open(ck, "w", encoding="utf-8") as f:
+                f.write(raw)
+            out_parts.append(raw)
+            polished += 1
+
+        if polished == 0:
+            print(" >> [AntiSlop] nothing polished; keeping original.")
+            return pdf_path
+
+        new_tex = self._repair_candidate_tex("".join(out_parts) + tail)
+        name = "antislop_polished"
+        with open(os.path.join(self.work_dir, f"{name}.tex"), "w",
+                  encoding="utf-8") as f:
+            f.write(new_tex)
+        new_pdf = os.path.join(self.work_dir, f"{name}.pdf")
+        pages_before = self._pdf_page_count(pdf_path)
+        compile_latex(self.work_dir, new_pdf, name)
+        if not os.path.exists(new_pdf) or not self._compile_is_complete(name):
+            print(" >> [AntiSlop] polished version failed to compile; keeping original.")
+            return pdf_path
+        pages_after = self._pdf_page_count(new_pdf)
+        if pages_after > pages_before:
+            print(f" >> [AntiSlop] pages grew ({pages_before} -> {pages_after}); keeping original.")
+            return pdf_path
+        print(f" >> [AntiSlop] polished {polished}/{len(parts)} parts; "
+              f"{pages_before}p -> {pages_after}p. Accepted.")
+        self.current_tex = new_tex
+        return new_pdf
+
     def _claim_evidence_check(self) -> list:
         """Claim–evidence alignment audit of the final Abstract/Introduction.
 
@@ -889,7 +994,14 @@ List every MAJOR claim (effectiveness, superiority, generality, novelty, or a st
 
 Be strict: an effectiveness claim with no reported numbers is needs_evidence, even if plausible. Quote claims close to the original wording.
 
-Reply ONLY with JSON: {{"claims": [{{"claim": "...", "evidence": "...", "status": "supported | supported_by_design | needs_evidence"}}]}}
+For each claim also give an ACTION (verdict taxonomy from paper-self-review):
+- "keep": claim fits its evidence;
+- "weaken": keep the claim but soften to what the evidence supports (fill suggested_wording with the weakened sentence);
+- "revise": claim is right in substance but stated wrong / mismapped evidence (fill suggested_wording);
+- "remove": nothing supports it and weakening loses the point (fill suggested_wording with "").
+supported_by_design claims normally take "keep".
+
+Reply ONLY with JSON: {{"claims": [{{"claim": "...", "evidence": "...", "status": "supported | supported_by_design | needs_evidence", "action": "keep | weaken | revise | remove", "suggested_wording": "..."}}]}}
 
 --- ABSTRACT + INTRODUCTION ---
 {scope}
@@ -904,18 +1016,27 @@ Reply ONLY with JSON: {{"claims": [{{"claim": "...", "evidence": "...", "status"
             return []
 
         valid = {"supported", "supported_by_design", "needs_evidence"}
+        actions = {"keep", "weaken", "revise", "remove"}
         claims = [c for c in claims
                   if isinstance(c, dict) and c.get("status") in valid and c.get("claim")]
+        for c in claims:
+            if c.get("action") not in actions:
+                c["action"] = "keep" if c["status"] != "needs_evidence" else "weaken"
+            if c["action"] == "keep":
+                c["suggested_wording"] = ""
         with open(os.path.join(self.work_dir, "claim_evidence_map.json"), "w",
                   encoding="utf-8") as f:
             json.dump(claims, f, indent=2, ensure_ascii=False)
 
         n_need = sum(1 for c in claims if c["status"] == "needs_evidence")
+        act = {a: sum(1 for c in claims if c["action"] == a) for a in actions}
         print(f" >> [ClaimCheck] {len(claims)} major claims audited; "
-              f"{n_need} need evidence (see claim_evidence_map.json).")
+              f"{n_need} need evidence (see claim_evidence_map.json). "
+              f"Actions: keep={act['keep']} weaken={act['weaken']} "
+              f"revise={act['revise']} remove={act['remove']}")
         for c in claims:
-            if c["status"] == "needs_evidence":
-                print(f"    ⚠ needs evidence: {c['claim'][:100]}")
+            if c["status"] == "needs_evidence" or c["action"] != "keep":
+                print(f"    ⚠ [{c['action']}] {c['claim'][:90]}")
         return claims
 
     def _extract_scores(self, review: dict) -> dict:
@@ -1311,6 +1432,9 @@ block.
 
         # --- Page-budget compression (length control) ------------------------
         final_valid_pdf_path = self._compress_to_page_budget(final_valid_pdf_path)
+
+        # --- Anti-slop wording pass (AI-pattern removal, wording only) -------
+        final_valid_pdf_path = self._anti_slop_polish(final_valid_pdf_path)
 
         # --- Claim-evidence alignment audit (final tex) -----------------------
         self._claim_evidence_check()

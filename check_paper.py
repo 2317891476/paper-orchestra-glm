@@ -368,6 +368,47 @@ def check_tables(lw, pdf, spec):
             "issues": issues, "status": "WARN" if issues else "PASS"}
 
 
+# AI-writing pattern lexicons (from Wikipedia "Signs of AI writing" via
+# claude-scholar's writing-anti-ai skill, MIT). High-precision phrases only —
+# an academic-paper lint must not cry wolf.
+AI_SLOP_EN = [
+    r"\bdelve[sd]?\b", r"\bcrucial\b", r"\blandscape\b(?!\})", r"\bmoreover\b",
+    r"\bfurthermore\b", r"\badditionally\b", r"\bnotably\b",
+    r"\bit is worth (?:noting|mentioning)\b", r"\bit is important to note\b",
+    r"plays? a[n]? (?:pivotal|crucial|vital|key|significant) role",
+    r"stands? as a testament", r"a testament to", r"paves? the way",
+    r"\bseamless(?:ly)?\b", r"\bholistic(?:ally)?\b", r"paradigm shift",
+    r"highlights? the importance", r"underscores? the (?:importance|significance)",
+    r"in the realm of", r"ever[- ]evolving", r"rapidly evolving",
+]
+AI_SLOP_ZH = [
+    "值得注意的是", "至关重要", "扮演着.{0,8}角色", "不仅仅是", "深入探讨",
+    "日新月异", "蓬勃发展", "彰显了", "注入了新的活力",
+]
+
+
+def check_ai_slop(lw, pdf, spec):
+    """Detect stereotyped LLM writing patterns (EN+ZH): buzzwords, vague
+    attributions, negative parallelism ('not just X, but Y'), em-dash overuse."""
+    tex = _read(_resolve_tex(lw))
+    tex = re.sub(r"(?<!\\)%.*", "", tex)  # strip comments
+    hits = sum(len(re.findall(p, tex, re.I)) for p in AI_SLOP_EN)
+    hits += sum(len(re.findall(p, tex)) for p in AI_SLOP_ZH)
+    neg_parallel = len(re.findall(
+        r"\bnot (?:just|only)\b[^.;!?]{0,80}?\bbut\b", tex, re.I))
+    emdash = len(re.findall(r"(?<!-)---(?!-)", tex))
+    issues = []
+    if hits >= 6:
+        issues.append(f"{hits} AI-pattern phrase hits (delve/crucial/Moreover/"
+                      "furthermore/'plays a crucial role'...) — reword")
+    if neg_parallel >= 2:
+        issues.append(f"{neg_parallel} negative parallelisms ('not just X, but Y')")
+    if emdash >= 15:
+        issues.append(f"{emdash} em-dashes ('---') — human papers rarely lean on them")
+    return {"phrases": hits, "neg_parallel": neg_parallel, "emdash": emdash,
+            "issues": issues, "status": "WARN" if issues else "PASS"}
+
+
 # ── runner ───────────────────────────────────────────────────────────────────
 
 CHECKS = [
@@ -383,6 +424,7 @@ CHECKS = [
     ("Anonymity",     check_anonymity),
     ("Overfull",      check_overfull),
     ("Tables",        check_tables),
+    ("AI Slop",       check_ai_slop),
 ]
 
 

@@ -67,9 +67,13 @@ After compression, the final Abstract + Introduction are audited
 (hard rule adapted from Research-Paper-Writing-Skills, MIT): every **major
 claim** must map to evidence, else be flagged. Output:
 `work_dir/claim_evidence_map.json` with
-`{claim, evidence, status}` where status ∈ `supported` (reported result) /
-`supported_by_design` (design/registered-report papers: claim about the
-artifact or protocol itself) / `needs_evidence`.
+`{claim, evidence, status, action, suggested_wording}` where status ∈
+`supported` (reported result) / `supported_by_design` (design or
+registered-report papers: claim about the artifact or protocol itself) /
+`needs_evidence`, and action ∈ `keep / weaken / revise / remove`
+(verdict taxonomy from claude-scholar's paper-self-review, MIT) with a
+`suggested_wording` for every non-keep — the map is actionable, not just a
+report.
 
 - Report-only: it never blocks or rewrites the paper — it makes the paper's
   evidential debt explicit (e.g. TRACE-RTL final: 10 claims → 5
@@ -77,6 +81,25 @@ artifact or protocol itself) / `needs_evidence`.
   "no empirical results are claimed" stance).
 - One LLM call through `_llm_call_with_deadline` (thinking disabled); any
   failure → skip silently.
+
+## Anti-slop wording pass (`_anti_slop_polish`)
+
+After compression (before the claim audit), one **wording-only** pass
+removes stereotyped LLM writing patterns (catalogue from Wikipedia
+"Signs of AI writing" via claude-scholar's writing-anti-ai, MIT):
+buzzwords (delve/crucial/Moreover/"plays a crucial role"...), negative
+parallelism ("not just X, but Y"), promotional vagueness, em-dash
+overuse, intensifiers/hedges, nominalizations.
+
+- Section-wise with the same machinery as compression: split + bib-tail
+  cut + per-part `antislop_<md5>_<idx>.tex` checkpoints + deadline calls.
+- Gates per part: cite count, label set, env count identical to the source;
+  length ∈ [0.5, 1.05]×; no code fences. Rejected part → original text.
+- Whole result → `_repair_candidate_tex` → compile → accept only if
+  `_compile_is_complete` AND page count did not grow; any failure keeps the
+  original (fail-safe).
+- Rationale: the pipeline's output is LLM-written end to end — the lint
+  found 63 em-dashes in the shipped TRACE-RTL paper on its first run.
 
 ## Page-budget compression (`_compress_to_page_budget`)
 

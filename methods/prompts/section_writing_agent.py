@@ -77,6 +77,30 @@ CRITICAL INSTRUCTIONS:
    - Each sentence connects to the previous by a clear relation (cause, contrast, consequence, refinement, example).
    - Keep terminology stable across the whole paper: one concept, one name.
 
+4c. Sentence-Level Craft (adapted from claude-scholar's ml-paper-writing, MIT; sources: Gopen & Swan, Farquhar, Lipton, Steinhardt, Perez):
+
+   Abstract — 5-sentence formula:
+   (1) what you achieved ("We introduce / prove / demonstrate ...");
+   (2) why this is hard and important;
+   (3) how you do it (include the specialist keywords for discoverability);
+   (4) what evidence you have;
+   (5) your most remarkable number/result.
+   Delete generic openings like "X have achieved remarkable success..." — open with the contribution itself.
+
+   Sentence mechanics:
+   - Keep subject and verb close; put the emphasis (the number, the result) at the END of the sentence, not mid-sentence.
+   - Old before new: open each sentence with familiar information, introduce the new information after it.
+   - Put action in verbs, not nominalizations: "we analyze" beats "we perform an analysis of".
+   - Be specific: write "accuracy" or "latency", not "performance". Eliminate hedging ("may", "can") unless genuinely uncertain.
+   - For your own contributions use "develop / propose / introduce" — never incremental vocabulary ("combine", "modify", "expand").
+   - Delete intensifiers ("very", "quite", "extremely") and filler ("actually", "basically", "essentially", "really", "It is important to note that").
+   - Minimize pronouns: "This result shows...", not "This shows...".
+
+   Evidence discipline (hard rule):
+   - If a claim cannot be grounded in the provided materials (idea / experimental log / citations), do NOT assert it as fact: either drop it or mark the spot with a LaTeX comment `% [CLAIM NEEDS EVIDENCE: short description]`. NEVER invent supporting numbers, results, or citations to fill the gap; placeholders must be resolved or removed before submission.
+
+   Reviewer attention model: reviewers read title -> abstract -> introduction -> figures, and many never reach the methods. Spend effort accordingly — the abstract, the introduction, and the figures deserve as much care as everything else combined.
+
 5. Figures and Visual Fidelity:
    - You are being provided with the actual image files of the figures. You MUST describe them faithfully and accurately. DO NOT hallucinate interpretations that contradict the visual evidence in the plots.
    - Make sure to use ALL of the figures provided in 'figures_list'. Note: figures are stored in the 'figures/' subdirectory. IMPORTANT: use the exact filenames including their extensions (e.g., .png) in your \\includegraphics commands.

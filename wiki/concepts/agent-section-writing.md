@@ -62,6 +62,29 @@ license). What it adds beyond the original instructions:
 - **Paragraph discipline**: one paragraph = one message, stated in the first
   sentence; explicit sentence-to-sentence relations; stable terminology.
 
+### 4c. Sentence-Level Craft block (added 2026-09-23)
+
+From [claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar)'s
+ml-paper-writing (MIT; sources Gopen & Swan / Farquhar / Lipton / Steinhardt /
+Perez) — complements the structural (RPWS) block above with the sentence
+layer:
+
+- **Abstract 5-sentence formula** (Farquhar): achievement → why hard/important
+  → how (specialist keywords) → evidence → most remarkable number; generic
+  "X have achieved remarkable success" openings banned.
+- **Sentence mechanics** (Gopen & Swan): subject-verb proximity; emphasis at
+  sentence END; old-before-new information order; action in verbs (no
+  nominalizations).
+- **Word rules** (Lipton): specific nouns ("accuracy"/"latency", not
+  "performance"); no hedging; contribution verbs develop/propose/introduce —
+  never combine/modify/expand; delete intensifiers/filler (Perez); minimal
+  pronouns ("This result shows…").
+- **`[CLAIM NEEDS EVIDENCE]` placeholder discipline**: a claim that can't be
+  grounded in the provided materials is dropped or marked with a
+  `% [CLAIM NEEDS EVIDENCE: ...]` LaTeX comment — evidence is never invented.
+- **Reviewer attention model**: title → abstract → intro → figures get the
+  effort; methods comes last.
+
 
 ## TODO / flesh out
 
