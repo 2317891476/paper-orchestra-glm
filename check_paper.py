@@ -20,10 +20,78 @@ from pathlib import Path
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _read(path):
+    if not path:
+        return ""
     try:
         return Path(path).read_text(encoding="utf-8", errors="ignore")
-    except FileNotFoundError:
+    except (FileNotFoundError, IsADirectoryError, PermissionError):
         return ""
+
+
+def _newest(lw, pattern):
+    """Newest file matching pattern in lw (by mtime), or '' if none."""
+    if not lw:
+        return ""
+    try:
+        files = sorted(Path(lw).glob(pattern), key=lambda p: p.stat().st_mtime)
+        return str(files[-1]) if files else ""
+    except Exception:
+        return ""
+
+
+def _candidate_dirs(lw):
+    """lw plus its sibling content_refinement_workdir (where compiles happen)."""
+    dirs = [lw]
+    crw = str(Path(lw).parent / "content_refinement_workdir")
+    if crw not in dirs and Path(crw).is_dir():
+        dirs.append(crw)
+    return dirs
+
+
+def _resolve_artifact(lw, preferred_name, pattern):
+    """Preferred filename if it exists, else the newest usable match.
+
+    The refinement workdir names artifacts per version (initial_draft.log,
+    refined_paper_v*.log), so a fixed filename read falls back to '' and
+    misdetects the engine as pdflatex. Rejected iteration attempts
+    (*_candidate_*.{log,tex}) are skipped — they may hold failed compiles that
+    never produced the shipped PDF.
+    """
+    for d in _candidate_dirs(lw):
+        preferred = Path(d) / preferred_name
+        if preferred.exists():
+            return str(preferred)
+    for d in _candidate_dirs(lw):
+        # final_refined_paper.* (the shipped compile) beats per-version files
+        final = Path(d) / preferred_name.replace("raw_draft_paper", "final_refined_paper")
+        if final.exists():
+            return str(final)
+    newest, mtime = "", 0.0
+    for d in _candidate_dirs(lw):
+        try:
+            for f in Path(d).glob(pattern):
+                # Only trust logs whose compile produced a PDF: failed
+                # iteration attempts (no sibling .pdf) must not shadow the
+                # shipped compile's log.
+                if not f.with_suffix(".pdf").exists():
+                    continue
+                m = f.stat().st_mtime
+                if m > mtime:
+                    newest, mtime = str(f), m
+        except Exception:
+            continue
+    if newest:
+        return newest
+    # No PDF-backed log: fall back to newest log regardless (best effort).
+    return _newest(lw, pattern) if lw else ""
+
+
+def _resolve_log(lw):
+    return _resolve_artifact(lw, "raw_draft_paper.log", "*.log")
+
+
+def _resolve_tex(lw):
+    return _resolve_artifact(lw, "raw_draft_paper.tex", "*.tex")
 
 
 def _run(cmd):
@@ -114,7 +182,7 @@ def load_spec(template_dir):
 # ── checks ───────────────────────────────────────────────────────────────────
 
 def check_compilation(lw, pdf, spec):
-    log = _read(f"{lw}/raw_draft_paper.log")
+    log = _read(_resolve_log(lw))
     errors = re.findall(r"^! (.+)", log, re.MULTILINE)
     return {
         "errors": len(errors),
@@ -146,7 +214,7 @@ def check_fonts(lw, pdf, spec):
 
 
 def check_font_size(lw, pdf, spec):
-    log = _read(f"{lw}/raw_draft_paper.log")
+    log = _read(_resolve_log(lw))
     actual = _detect_font_size(log)
     expected = spec.get("body_font_pt")
     issues = []
@@ -180,7 +248,7 @@ def check_columns(lw, pdf, spec):
 
 
 def check_engine(lw, pdf, spec):
-    log = _read(f"{lw}/raw_draft_paper.log")
+    log = _read(_resolve_log(lw))
     actual = _detect_engine(log)
     expected = spec.get("engine")
     issues = []
@@ -191,7 +259,7 @@ def check_engine(lw, pdf, spec):
 
 
 def check_bib_style(lw, pdf, spec):
-    tex = _read(f"{lw}/raw_draft_paper.tex")
+    tex = _read(_resolve_tex(lw))
     actual = _detect_bib_style(tex)
     expected = spec.get("bib_style")
     issues = []
@@ -202,7 +270,7 @@ def check_bib_style(lw, pdf, spec):
 
 
 def check_references(lw, pdf, spec):
-    tex = _read(f"{lw}/raw_draft_paper.tex")
+    tex = _read(_resolve_tex(lw))
     bib = _read(f"{lw}/references.bib")
     cited = set()
     for c in re.findall(r"\\cite\{([^}]+)\}", tex):
@@ -234,7 +302,7 @@ def check_references(lw, pdf, spec):
 
 
 def check_figures(lw, pdf, spec):
-    tex = _read(f"{lw}/raw_draft_paper.tex")
+    tex = _read(_resolve_tex(lw))
     includes = re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", tex)
     missing = []
     for inc in includes:
@@ -259,7 +327,7 @@ def check_figures(lw, pdf, spec):
 
 
 def check_anonymity(lw, pdf, spec):
-    tex = _read(f"{lw}/raw_draft_paper.tex")
+    tex = _read(_resolve_tex(lw))
     expected_anon = spec.get("anonymous")
     actual_anon = _detect_anonymous(tex)
     issues = []
@@ -275,7 +343,7 @@ def check_anonymity(lw, pdf, spec):
 
 
 def check_overfull(lw, pdf, spec):
-    log = _read(f"{lw}/raw_draft_paper.log")
+    log = _read(_resolve_log(lw))
     vals = [float(v) for v in re.findall(r"Overfull \\hbox \(([\d.]+)pt", log)]
     return {"total": len(vals), "large": sum(1 for v in vals if v > 20),
             "max": max(vals) if vals else 0,

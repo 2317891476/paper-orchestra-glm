@@ -56,7 +56,7 @@ Full run (no `--stages`/`--from_stage`) keeps the original wipe + 3× retry beha
 
 | Script | Purpose |
 | --- | --- |
-| `check_paper.py` | **Format checker** — validates PDF against template's `format.yaml` (11 checks). Runs **automatically** after pipeline + enrichment. Also standalone: `python check_paper.py --paper_dir X --template_dir templates/Y` |
+| `check_paper.py` | **Format checker** — validates PDF against template's `format.yaml` (11 checks). Runs **automatically** after pipeline + enrichment. Also standalone: `python check_paper.py --paper_dir X --template_dir templates/Y`. Compile artifacts are resolved robustly (`raw_draft_paper.*` → `final_refined_paper.*` → newest PDF-backed `*.log`/`*.tex` across `latex_writeup/` + `content_refinement_workdir/`) so rejected iteration attempts can't shadow the shipped compile. |
 | `enrich_paper.py` | Add citations to an existing paper (see [enrich-paper](enrich-paper.md)). Now runs format check after enrichment if `--template_dir` given. |
 | `fast_dac_draft.py` | Quick DAC draft from a method .md (outline+section only, no literature/refinement) |
 | `optimize_papers.py` | Re-run outline+section with `concepts/` implementation docs folded into the materials |

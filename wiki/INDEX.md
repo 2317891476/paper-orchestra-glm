@@ -64,11 +64,13 @@ python paper_writing_cli.py \
 
 ## Dev logs (newest month first)
 
+- [2026-09](devlog/2026-09.md)
 - [2026-07](devlog/2026-07.md)
 - [2026-06](devlog/2026-06.md)
 
 ## Timeline (landed milestones only)
 
+- **2026-09** — TRACE-RTL paper (FSE 2026 / PACMSE) generated end-to-end, **20p final** (32p → 20p via the page-budget compression loop; 11/11 `check_paper.py` PASS) + **17p Chinese version**; refinement hardened: compile-verification gate (truncation-safe), text fallback for VLM formatting review on GLM, wall-clock deadlines + thinking-mode-off on compression calls, section-wise compression with a paragraph-delete protocol for oversized sections.
 - **2026-07** — Format checker (`check_paper.py`) integrated into pipeline closed-loop; `format.yaml` per template (9 files); 11 template-aware checks auto-run after generation + enrichment.
 - **2026-07** — arXiv→formal publication resolution (DBLP+S2); GB/T 7714 国标 citation format for Chinese papers; enrichment post-cleanup (orphan removal + stronger prompt).
 - **2026-06** — Chinese survey support: engine-aware `compile_latex` (auto xelatex for ctex/xeCJK) + `templates/software_se/` (ctexart survey) + `se_survey/` example. Generated an 8-page Chinese SE survey end-to-end.
